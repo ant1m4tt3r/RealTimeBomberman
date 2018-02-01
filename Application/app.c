@@ -155,6 +155,9 @@ int placed_bombs = 0; // Número total de bombas colocadas.
 
 int enemy_count  = 3; // Número de inimigos.
 
+int bomb_to_explode_x = 0;
+int bomb_to_explode_y = 0;
+
 /*
 * Matrix de bombas. Será inicializada na função Initiate_Bombs_Matrix(void).
 * A primeira coluna de cada entrada representa a posição em X, a segunda em Y e a terceira o tempo de detonação.
@@ -564,14 +567,17 @@ static  void  Explosion_Task (int  p_arg[])
 {
 	OS_ERR        err_os;
 
-	int x = p_arg[0];
-	int y = p_arg[1];
+	int x = bomb_to_explode_x;
+	int y = bomb_to_explode_y;
 
 	int i;
 	int k;
 	int j;
 
 	int explosion_time = 80; // Tempo que a explosão continuará evidente no mapa.
+
+	printf("x: %d\n", x);
+	printf("y: %d\n", y);
 
 	BOMB_ON = 0;
 
@@ -815,11 +821,13 @@ static void Draw_Bombs()
 		} 
 		else
 		{
-			Explode(BOMBS[i]);
-			// Define como 0 a posição da bomba explodida, ou seja, fora do mapa alcançável.
-			BOMBS[i][0] = 0;
-			BOMBS[i][1] = 0;
-			BOMBS[i][2] = 0;
+			if (BOMBS[i][0] > 0) {
+				Explode(BOMBS[i][0], BOMBS[i][1]);
+				// Define como 0 a posição da bomba explodida, ou seja, fora do mapa alcançável.
+				BOMBS[i][0] = 0;
+				BOMBS[i][1] = 0;
+				BOMBS[i][2] = 0;
+			}
 		}
 
 	}
@@ -829,8 +837,6 @@ static void Draw_Bombs()
 // Desenha de fato as explosões e mata as tasks dos inimigos, caso sejam atingidos.
 static void Draw_Explosion(HBITMAP *img, int x, int y)
 {
-	printf("%d   ", x);
-	printf("%d\n", y);
 	GUI_DrawImage(img, // *img
 		x * BLOCK_SIZE, // posx
 		y * BLOCK_SIZE, // posy
@@ -1029,16 +1035,20 @@ static void Put_Bomb(void)
 }
 
 // Cria a task responsável pela explosão da bomba na posição x = bomb[0], y = bomb[1]
-static void Explode(int bomb[2])
+static void Explode(int x, int y)
 {
 	OS_ERR  err_os;
-	int x = bomb[0];
-	int y = bomb[1];
+
+	bomb_to_explode_x = x;
+	bomb_to_explode_y = y;
+
+	printf("Explode x: %d\n", x);
+	printf("Explode y: %d\n", y);
 
 	OSTaskCreate((OS_TCB     *)&Explosion_TaskTCB,                
 		(CPU_CHAR   *)"Explosion TASK",
 		(OS_TASK_PTR ) Explosion_Task,
-		bomb, // array contendo a posição central da explosão passada para a task Explosion_Task.
+		(void *) 0, // array contendo a posição central da explosão passada para a task Explosion_Task.
 		(OS_PRIO     ) 5,
 		(CPU_STK    *)&Explosion_TaskStk[0],
 		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE / 10u,
