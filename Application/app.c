@@ -1070,7 +1070,7 @@ static void Make_Move(int opt)
 		OS_OPT_POST_NONE,
 		&err_os);
 
-	//OSTimeDlyHMSM(0,0,0,10,OS_OPT_TIME_DLY, &err_os);
+	OSTimeDlyHMSM(0,0,0,30,OS_OPT_TIME_DLY, &err_os);
 	WAITING_CLICK = 0;
 
 }
@@ -1345,8 +1345,8 @@ static void Catch_Bomberman(int enemy_123 ,int x, int y){
 	int randomY; 
 	int distanceY;
 
-	randomX = BOMBERMAN_POS_X;
-	randomY = BOMBERMAN_POS_Y;
+	randomX = 7;//BOMBERMAN_POS_X;
+	randomY = 6;//BOMBERMAN_POS_Y;
 
 	//Se o caminho do x esta mais perto do caminho do Y, prioridade o X
 
@@ -1453,7 +1453,7 @@ static void Catch_Bomberman(int enemy_123 ,int x, int y){
 bool find_wall_blocks(int i, int j){
 
 
-	if((LABIRINTO[j][i] == 2)||(LABIRINTO[j][i] == 1)||(LABIRINTO[j][i] == 6)){ // Se tem bloco, paredes, ou bombas
+	if(LABIRINTO[j][i] != 0){ // Se tem bloco, paredes, ou bombas
 		printf("Posicao do bloco ou parede true  X %i , Y %i \n",i , j);
 		return true;
 
