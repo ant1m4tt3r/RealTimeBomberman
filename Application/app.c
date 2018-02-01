@@ -612,15 +612,17 @@ static  void  Bg_Task (void  *p_arg)
 
 		Draw_Blocks();
 
-		OSSemPost(&player,     
-			OS_OPT_POST_NONE,
-			&err_os);
-
 		OSSemPost(&enemys,     
 			OS_OPT_POST_NONE,
 			&err_os);
 
 		Draw_Enemys();
+
+		OSSemPost(&player,     
+			OS_OPT_POST_NONE,
+			&err_os);
+
+
 
 		OSSemPend(&commands,                            
 			0,                                  
@@ -779,7 +781,11 @@ static  void Enemy_2 (void *p_arg)
 
 		//Draw_Enemy(2, img_enemy2, x, y);
 
-		//Catch_Bomberman(2,ENEMYS_POS[1][0],ENEMYS_POS[1][1]);//Enemy 1
+		if (ENEMYS_POS[1][0] == BOMBERMAN_POS_X && ENEMYS_POS[1][1] == BOMBERMAN_POS_Y)
+		{
+			Finish_Game();
+		}
+		Catch_Bomberman(2,ENEMYS_POS[1][0],ENEMYS_POS[1][1]);//Enemy 1
 
 		if (ENEMYS_POS[1][0] == BOMBERMAN_POS_X && ENEMYS_POS[1][1] == BOMBERMAN_POS_Y)
 		{
@@ -807,8 +813,11 @@ static  void Enemy_3 (void *p_arg)
 			&err_os); 
 
 		//Draw_Enemy(3, img_enemy3, x, y);
-
-		//Catch_Bomberman(3,ENEMYS_POS[2][0],ENEMYS_POS[2][1]);//Enemy 1
+		if (x == BOMBERMAN_POS_X && y == BOMBERMAN_POS_Y)
+		{
+			Finish_Game();
+		}
+		Catch_Bomberman(3,ENEMYS_POS[2][0],ENEMYS_POS[2][1]);//Enemy 1
 		if (x == BOMBERMAN_POS_X && y == BOMBERMAN_POS_Y)
 		{
 			Finish_Game();
@@ -1341,13 +1350,13 @@ static void Catch_Bomberman(int enemy_123 ,int x, int y){
 
 	//Se o caminho do x esta mais perto do caminho do Y, prioridade o X
 
-	//OSSemPend(&enemy[enemy_123-1],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
+	OSSemPend(&enemys,0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	Enemy_route(ENEMYS_POS[enemy_123 - 1][0],ENEMYS_POS[enemy_123 - 1][1]);
 	distanceX = randomX - ENEMYS_POS[enemy_123 - 1][0];
 	distanceY = randomY - ENEMYS_POS[enemy_123 - 1][1];
 	//OSSemPost(&enemy[enemy_123-1] ,OS_OPT_POST_NONE,&err_os); 
 
-	if(distanceX<0){
+	if(distanceX<=0){
 
 		if(directions[1] == 1){
 			go_left(enemy_123,x,y);
@@ -1393,7 +1402,7 @@ static void Catch_Bomberman(int enemy_123 ,int x, int y){
 		}
 	}
 
-	if(distanceY<0){
+	if(distanceY<=0){
 
 		if(directions[2] == 1){
 			go_up(enemy_123,x,y);
@@ -1437,7 +1446,7 @@ static void Catch_Bomberman(int enemy_123 ,int x, int y){
 			return;
 		}
 	}
-
+	OSSemPost(&enemys ,OS_OPT_POST_NONE,&err_os);
 }
 
 
@@ -1498,8 +1507,15 @@ static void go_right(int enemy_123,int x, int y){
 	OS_ERR err_os;
 	CPU_TS ts;
 
-	
+
+
 	OSSemPend(&commands,                            
+		0,                                  
+		OS_OPT_PEND_BLOCKING,                
+		&ts,
+		&err_os);
+
+	OSSemPend(&player,                            
 		0,                                  
 		OS_OPT_PEND_BLOCKING,                
 		&ts,
@@ -1517,11 +1533,13 @@ static void go_right(int enemy_123,int x, int y){
 	{
 		Finish_Game();
 	}
-	
+
 	OSSemPost(&commands,     
 		OS_OPT_POST_NONE,
 		&err_os);
-
+	OSSemPost(&player,     
+		OS_OPT_POST_NONE,
+		&err_os);
 	OSTimeDlyHMSM(0,0,0,400,OS_OPT_TIME_DLY, &err_os);
 
 
@@ -1533,7 +1551,14 @@ static void go_down(int enemy_123,int x, int y){
 	OS_ERR err_os;
 	CPU_TS ts;
 
+
 	OSSemPend(&commands,                            
+		0,                                  
+		OS_OPT_PEND_BLOCKING,                
+		&ts,
+		&err_os);
+
+	OSSemPend(&player,                            
 		0,                                  
 		OS_OPT_PEND_BLOCKING,                
 		&ts,
@@ -1555,7 +1580,9 @@ static void go_down(int enemy_123,int x, int y){
 		OS_OPT_POST_NONE,
 		&err_os);
 
-
+	OSSemPost(&player,     
+		OS_OPT_POST_NONE,
+		&err_os);
 	OSTimeDlyHMSM(0,0,0,400,OS_OPT_TIME_DLY, &err_os);
 
 
@@ -1570,6 +1597,11 @@ static void go_left(int enemy_123,int x, int y){
 	CPU_TS ts;
 
 	OSSemPend(&commands,                            
+		0,                                  
+		OS_OPT_PEND_BLOCKING,                
+		&ts,
+		&err_os);
+	OSSemPend(&player,                            
 		0,                                  
 		OS_OPT_PEND_BLOCKING,                
 		&ts,
@@ -1590,6 +1622,9 @@ static void go_left(int enemy_123,int x, int y){
 	OSSemPost(&commands,     
 		OS_OPT_POST_NONE,
 		&err_os);
+	OSSemPost(&player,     
+		OS_OPT_POST_NONE,
+		&err_os);
 
 	OSTimeDlyHMSM(0,0,0,400,OS_OPT_TIME_DLY, &err_os);
 
@@ -1598,12 +1633,13 @@ static void go_left(int enemy_123,int x, int y){
 
 
 
-	
+
 }
 
 static void go_up(int enemy_123,int x, int y){
 	OS_ERR err_os;
 	CPU_TS ts;
+
 
 	OSSemPend(&commands,                            
 		0,                                  
@@ -1611,7 +1647,14 @@ static void go_up(int enemy_123,int x, int y){
 		&ts,
 		&err_os);
 
+	OSSemPend(&player,                            
+		0,                                  
+		OS_OPT_PEND_BLOCKING,                
+		&ts,
+		&err_os);
+
 	LABIRINTO[y][x] = 0;
+
 	OSSemPend(&enemy[enemy_123-1],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	y--;
 	Enemy_route(x,y);
@@ -1624,6 +1667,10 @@ static void go_up(int enemy_123,int x, int y){
 	}
 
 	OSSemPost(&commands,     
+		OS_OPT_POST_NONE,
+		&err_os);
+
+	OSSemPost(&player,     
 		OS_OPT_POST_NONE,
 		&err_os);
 
