@@ -229,13 +229,13 @@ static void Explode(int[]);
 static void Verifications(void);
 static void Finish_Game(void);
 
-static void Catch_Bomberman(int , int );
+static void Catch_Bomberman(int , int , int );
 static bool find_wall_blocks(int , int);
-static void Enemy_route(int , int );
-static void go_right(int ,int , int );
-static void go_down(int ,int , int );
-static void go_up(int ,int , int );
-static void go_left(int, int ,int);
+static void Enemy_route(int );
+static void go_right(int );
+static void go_down(int );
+static void go_up(int );
+static void go_left(int);
 
 static OS_SEM player;
 static OS_SEM commands; 
@@ -1261,7 +1261,7 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 
 	//OSSemPend(&enemys,0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	//printf("Entrou na rota inimigo %i \n",this_enemy);
-	Enemy_route(ENEMYS_POS[this_enemy][0],ENEMYS_POS[this_enemy][1]);
+	Enemy_route(this_enemy);
 	distanceX = randomX - ENEMYS_POS[this_enemy][0];
 	distanceY = randomY - ENEMYS_POS[this_enemy][1];
 	OSSemPost(&enemy[this_enemy] ,OS_OPT_POST_NONE,&err_os); 
@@ -1271,16 +1271,16 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 	if(distanceX<=0){
 
 		if(directions[1] == 1){
-			go_left(this_enemy,x,y);
+			go_left(this_enemy);
 		}else{	
 			if(directions[2] == 1){
-				go_up(this_enemy,x,y);
+				go_up(this_enemy);
 			}else{	
 				if(directions[4] == 1){
-					go_down(this_enemy,x,y);
+					go_down(this_enemy);
 				}else{
 					if(directions[3] == 1){
-						go_right(this_enemy,x,y);
+						go_right(this_enemy);
 					}else{	
 						return;
 					}
@@ -1292,16 +1292,16 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 		if(distanceX>0){
 
 			if(directions[3] == 1){
-				go_right(this_enemy,x,y);
+				go_right(this_enemy);
 			}else{	
 				if(directions[2] == 1){
-					go_up(this_enemy,x,y);
+					go_up(this_enemy);
 				}else{	
 					if(directions[4] == 1){
-						go_down(this_enemy,x,y);
+						go_down(this_enemy);
 					}else{
 						if(directions[1] == 1){
-							go_left(this_enemy,x,y);
+							go_left(this_enemy);
 						}else{	
 							return;
 						}
@@ -1317,16 +1317,16 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 	if(distanceY<=0){
 
 		if(directions[2] == 1){
-			go_up(this_enemy,x,y);
+			go_up(this_enemy);
 		}else{	
 			if(directions[1] == 1){
-				go_left(this_enemy,x,y);
+				go_left(this_enemy);
 			}else{	
 				if(directions[3] == 1){
-					go_right(this_enemy,x,y);
+					go_right(this_enemy);
 				}else{
 					if(directions[4] == 1){
-						go_down(this_enemy,x,y);
+						go_down(this_enemy);
 					}else{
 						return;
 					}
@@ -1336,16 +1336,16 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 	}else{
 		if(distanceY>0){
 			if(directions[4] == 1){
-				go_down(this_enemy,x,y);
+				go_down(this_enemy);
 			}else{	
 				if(directions[1] == 1){
-					go_left(this_enemy,x,y);
+					go_left(this_enemy);
 				}else{	
 					if(directions[3] == 1){
-						go_right(this_enemy,x,y);
+						go_right(this_enemy);
 					}else{
 						if(directions[2] == 1){
-							go_up(this_enemy,x,y);
+							go_up(this_enemy);
 						}else{
 							return;
 						}
@@ -1383,13 +1383,12 @@ bool find_wall_blocks(int i, int j){
 }
 
 
-void AStarSearch(void){
 
-}
-
-static void Enemy_route(int x, int y){
+static void Enemy_route(int this_enemy){
 
 	// direcoes 1 - left, 2 - up  3- right 4- down
+	int x = ENEMYS_POS[this_enemy][0];
+	int y = ENEMYS_POS[this_enemy][1];
 
 	if(find_wall_blocks(x+1,y)==false){
 		directions[3] = 1;
@@ -1417,12 +1416,13 @@ static void Enemy_route(int x, int y){
 
 }
 
-static void go_right(int this_enemy,int x, int y){
+static void go_right(int this_enemy){
 
 	OS_ERR err_os;
 	CPU_TS ts;
 
-
+	int x = ENEMYS_POS[this_enemy][0];
+	int y = ENEMYS_POS[this_enemy][1];
 
 	OSSemPend(&commands,                            
 		0,                                  
@@ -1437,11 +1437,10 @@ static void go_right(int this_enemy,int x, int y){
 		&err_os);
 
 	LABIRINTO[y][x] = 0;
-	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os); //Protege a variáveel
-	x++;
-	Enemy_route(x,y);
 
-	ENEMYS_POS[this_enemy][0] = x;
+	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os); //Protege a variáveel
+	ENEMYS_POS[this_enemy][0]++;
+	Enemy_route(this_enemy);
 	OSSemPost(&enemy[this_enemy] ,OS_OPT_POST_NONE,&err_os);
 
 	if (ENEMYS_POS[this_enemy][0]== BOMBERMAN_POS_X && ENEMYS_POS[this_enemy][1] == BOMBERMAN_POS_Y)
@@ -1461,11 +1460,13 @@ static void go_right(int this_enemy,int x, int y){
 
 }
 
-static void go_down(int this_enemy,int x, int y){
+static void go_down(int this_enemy){
 
 	OS_ERR err_os;
 	CPU_TS ts;
 
+	int x = ENEMYS_POS[this_enemy][0];
+	int y = ENEMYS_POS[this_enemy][1];
 
 	OSSemPend(&commands,                            
 		0,                                  
@@ -1481,9 +1482,9 @@ static void go_down(int this_enemy,int x, int y){
 
 	LABIRINTO[y][x] = 0;
 	OSSemPend(&enemy[this_enemy-1],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
-	y++;
-	Enemy_route(x,y);
-	ENEMYS_POS[this_enemy][1] = y;
+	ENEMYS_POS[this_enemy][1]++;
+	Enemy_route(this_enemy);
+	
 	OSSemPost(&enemy[this_enemy] ,OS_OPT_POST_NONE,&err_os);
 
 	if (ENEMYS_POS[this_enemy][0]== BOMBERMAN_POS_X && ENEMYS_POS[this_enemy][1] == BOMBERMAN_POS_Y)
@@ -1506,10 +1507,13 @@ static void go_down(int this_enemy,int x, int y){
 }
 
 
-static void go_left(int this_enemy,int x, int y){
+static void go_left(int this_enemy){
 
 	OS_ERR err_os;
 	CPU_TS ts;
+
+	int x = ENEMYS_POS[this_enemy][0];
+	int y = ENEMYS_POS[this_enemy][1];
 
 	OSSemPend(&commands,                            
 		0,                                  
@@ -1524,10 +1528,11 @@ static void go_left(int this_enemy,int x, int y){
 
 	LABIRINTO[y][x] = 0;
 	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
-	x--;
-	Enemy_route(x,y);
 
-	ENEMYS_POS[this_enemy][0] = x;
+	ENEMYS_POS[this_enemy][0]--;
+
+	Enemy_route(this_enemy);
+
 	OSSemPost(&enemy[this_enemy] ,OS_OPT_POST_NONE,&err_os);
 	if (ENEMYS_POS[this_enemy][0]== BOMBERMAN_POS_X && ENEMYS_POS[this_enemy][1] == BOMBERMAN_POS_Y)
 	{
@@ -1551,10 +1556,13 @@ static void go_left(int this_enemy,int x, int y){
 
 }
 
-static void go_up(int this_enemy,int x, int y){
+static void go_up(int this_enemy){
+	
 	OS_ERR err_os;
 	CPU_TS ts;
 
+	int x = ENEMYS_POS[this_enemy][0];
+	int y = ENEMYS_POS[this_enemy][1];
 
 	OSSemPend(&commands,                            
 		0,                                  
@@ -1571,10 +1579,9 @@ static void go_up(int this_enemy,int x, int y){
 	LABIRINTO[y][x] = 0;
 
 	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
-	y--;
-	Enemy_route(x,y);
+	ENEMYS_POS[this_enemy][1]-- ;
+	Enemy_route(this_enemy);
 	OSSemPost(&enemy[this_enemy] ,OS_OPT_POST_NONE,&err_os);
-	ENEMYS_POS[this_enemy][1] = y ;
 
 	if (ENEMYS_POS[this_enemy][0]== BOMBERMAN_POS_X && ENEMYS_POS[this_enemy][1] == BOMBERMAN_POS_Y)
 	{
