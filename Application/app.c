@@ -82,8 +82,8 @@ static  CPU_STK  Bombs_TaskStk[APP_TASK_START_STK_SIZE];
 static  OS_TCB   Explosion_TaskTCB;
 static  CPU_STK  Explosion_TaskStk[APP_TASK_START_STK_SIZE];
 
-static  OS_TCB   Enemy_TCB[Enemys_number];
-static  CPU_STK  Enemy_Stk[Enemys_number][APP_TASK_START_STK_SIZE];
+static  OS_TCB   Enemy_Task_TCB[Enemys_number];
+static  CPU_STK  Enemy_Task_Stk[Enemys_number][APP_TASK_START_STK_SIZE];
 
 static  OS_TCB  Bg_TaskTCB;
 static  CPU_STK  Bg_TaskStk[APP_TASK_START_STK_SIZE];
@@ -208,7 +208,7 @@ static  void  Explosion_Task (void  *p_arg);
 static  void  Bg_Task (void  *p_arg);
 static  void  Blocks_Task (void  *p_arg);
 
-static  void Enemy(void *p_arg);
+static  void Enemy_Task(void *p_arg);
 
 static void Draw_Background(void);
 static void Draw_Player(void);
@@ -415,7 +415,7 @@ static  void  App_TaskStart (void  *p_arg)
 
 	Create_Enemys_Tasks();
 
-	Draw_Background();
+	//Draw_Background();
 
 	// Loop de mensagens para interface grafica
 	while (1)
@@ -441,12 +441,12 @@ static void Create_Enemys_Tasks ()
 	int i;
 	for (i=0;i<Enemys_number;i++){
 
-		OSTaskCreate((OS_TCB     *)&Enemy_TCB[i],                
+		OSTaskCreate((OS_TCB     *)&Enemy_Task_TCB[i],                
 			(CPU_CHAR   *)"Enemy %i",
-			(OS_TASK_PTR ) Enemy,
+			(OS_TASK_PTR ) Enemy_Task,
 			(void       *) (i),
 			(OS_PRIO     ) 6,
-			(CPU_STK    *)&Enemy_Stk[i][0],
+			(CPU_STK    *)&Enemy_Task_Stk[i][0],
 			(CPU_STK_SIZE) APP_TASK_START_STK_SIZE / 10u,
 			(CPU_STK_SIZE) APP_TASK_START_STK_SIZE,
 			(OS_MSG_QTY  ) 0u,
@@ -581,9 +581,9 @@ static  void  Bg_Task (void  *p_arg)
 
 		Draw_Blocks();
 
-		/*OSSemPost(&enemys,     
+		OSSemPost(&enemys,     
 		OS_OPT_POST_NONE,
-		&err_os);*/
+		&err_os);
 
 		Draw_Enemys();
 
@@ -700,7 +700,7 @@ static  void  Explosion_Task (int  p_arg[])
 }
 
 // Task dos inimigos de i indo 0 a 2
-static  void Enemy(void *p_arg)
+static  void Enemy_Task(void *p_arg)
 {
 	OS_ERR  err_os;
 	CPU_TS  ts;
@@ -709,11 +709,11 @@ static  void Enemy(void *p_arg)
 	while (1) 
 	{		
 
-		/*OSSemPend(&enemys,                            
+		OSSemPend(&enemys,                            
 		0,                                  
 		OS_OPT_PEND_BLOCKING,                
 		&ts,
-		&err_os); */
+		&err_os); 
 		
 		Draw_Enemy(i, img_enemy1, ENEMYS_POS[i][0], ENEMYS_POS[i][1]);
 
@@ -721,7 +721,7 @@ static  void Enemy(void *p_arg)
 		{
 			Finish_Game();
 		}
-		printf("Posicao atual x%i y%i \n", ENEMYS_POS[i][0], ENEMYS_POS[i][0]);
+		printf("Posicao atual do inimigo %i x%i y%i \n", i,ENEMYS_POS[i][0], ENEMYS_POS[i][0]);
 
 		OSSemPend(&enemy_turn,                            
 			0,                                  
@@ -743,7 +743,6 @@ static  void Enemy(void *p_arg)
 		&err_os);*/
 	}
 }
-
 
 
 static void Draw_Enemys()
@@ -774,18 +773,6 @@ static void Draw_Background(void)
 	GUI_DrawImage(img_back, 4, 0, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGTH, 0); // Coloca o Fundo com offset proposital de 4px em x.
 }
 
-// Desenha a cobertura da imagem anterior
-static void Draw_Cover(int x, int y)
-{
-	GUI_DrawImage(img_cover, // *img
-		x * BLOCK_SIZE, // posx
-		y * BLOCK_SIZE, // posy
-		BLOCK_SIZE, // width
-		BLOCK_SIZE, // height
-		2); // index
-
-	LABIRINTO[y][x] = 0;
-}
 
 // Desenha o player na posição atual
 static void Draw_Player(void)
@@ -902,7 +889,7 @@ static void Kill_Enemy(int i)
 
 	enemy_count--;
 
-	OSTaskDel(&Enemy_TCB[i], &os_err);
+	OSTaskDel(&Enemy_Task_TCB[i], &os_err);
 
 }
 
@@ -1200,6 +1187,7 @@ LRESULT CALLBACK HandleGUIEvents(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			// redesenha as imagens da tela
 			GUI_DrawImage(img, imgXPos, imgYPos, 100, 100,1);
 			*/
+			
 		}
 		return DefWindowProc(hwnd, msg, wParam, lParam);
 		break;
@@ -1252,8 +1240,8 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 
 	OSSemPend(&commands,0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
-	randomX = BOMBERMAN_POS_X;
-	randomY = BOMBERMAN_POS_Y;
+	randomX = rand()%15;BOMBERMAN_POS_X;
+	randomY = rand()%12;BOMBERMAN_POS_Y;
 
 	//printf("Entrou no Catch enemy %i \n",this_enemy);
 	OSSemPost(&commands ,OS_OPT_POST_NONE,&err_os);
@@ -1369,12 +1357,12 @@ bool find_wall_blocks(int i, int j){
 
 
 	if(LABIRINTO[j][i] != 0){ // Se tem bloco, paredes, ou bombas
-		printf("Posicao do bloco ou parede true  X %i , Y %i \n",i , j);
+		//printf("Posicao do bloco ou parede true  X %i , Y %i \n",i , j);
 		return true;
 
 	}else
 	{
-		printf("Posicao do bloco ou parede false X %i , Y %i \n",i , j);
+		//printf("Posicao do bloco ou parede false X %i , Y %i \n",i , j);
 		return false;
 
 	}
@@ -1481,7 +1469,7 @@ static void go_down(int this_enemy){
 		&err_os);
 
 	LABIRINTO[y][x] = 0;
-	OSSemPend(&enemy[this_enemy-1],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
+	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	ENEMYS_POS[this_enemy][1]++;
 	Enemy_route(this_enemy);
 	
