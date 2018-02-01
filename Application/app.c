@@ -415,7 +415,7 @@ static  void  App_TaskStart (void  *p_arg)
 		(CPU_CHAR   *)"Bocks TASK",
 		(OS_TASK_PTR ) Blocks_Task,
 		(void       *) 0,
-		(OS_PRIO     ) 5,
+		(OS_PRIO     ) 4,
 		(CPU_STK    *)&Blocks_TaskStk[0],
 		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE / 10u,
 		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE,
@@ -431,8 +431,6 @@ static  void  App_TaskStart (void  *p_arg)
 
 	Draw_Background();
 
-
-
 	// Loop de mensagens para interface grafica
 	while (1)
 	{
@@ -442,13 +440,64 @@ static  void  App_TaskStart (void  *p_arg)
 		TranslateMessage(&Msg);
 		DispatchMessage(&Msg);
 
-		OSTimeDlyHMSM(0,0,0,10,OS_OPT_TIME_DLY, &err_os); //Mudar o valor 50 pode dificultar o jogo, o que pode ser um mod da fase
+		OSTimeDlyHMSM(0,0,0,50,OS_OPT_TIME_DLY, &err_os); //Mudar o valor 50 pode dificultar o jogo, o que pode ser um mod da fase
 
 	}
 
 	printf("\n fim do loop de msg");
 
 }
+
+static void Create_Enemys_Tasks () 
+{
+	OS_ERR  err_os;
+
+	OSTaskCreate((OS_TCB     *)&Enemy_1TCB,                
+		(CPU_CHAR   *)"Enemy_1",
+		(OS_TASK_PTR ) Enemy_1,
+		(void       *) 0,
+		(OS_PRIO     ) 6,
+		(CPU_STK    *)&Enemy_1Stk[0],
+		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE / 10u,
+		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE,
+		(OS_MSG_QTY  ) 0u,
+		(OS_TICK     ) 0u,
+		(void       *) 0,
+		(OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+		(OS_ERR     *)&err_os);
+	APP_TEST_FAULT(err_os, OS_ERR_NONE);
+
+	OSTaskCreate((OS_TCB     *)&Enemy_2TCB,                
+		(CPU_CHAR   *)"Enemy_2",
+		(OS_TASK_PTR ) Enemy_2,
+		(void       *) 0,
+		(OS_PRIO     ) 6,
+		(CPU_STK    *)&Enemy_2Stk[0],
+		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE / 10u,
+		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE,
+		(OS_MSG_QTY  ) 0u,
+		(OS_TICK     ) 0u,
+		(void       *) 0,
+		(OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+		(OS_ERR     *)&err_os);
+	APP_TEST_FAULT(err_os, OS_ERR_NONE);
+
+	OSTaskCreate((OS_TCB     *)&Enemy_3TCB,                
+		(CPU_CHAR   *)"Enemy_3",
+		(OS_TASK_PTR ) Enemy_3,
+		(void       *) 0,
+		(OS_PRIO     ) 6,
+		(CPU_STK    *)&Enemy_3Stk[0],
+		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE / 10u,
+		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE,
+		(OS_MSG_QTY  ) 0u,
+		(OS_TICK     ) 0u,
+		(void       *) 0,
+		(OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+		(OS_ERR     *)&err_os);
+	APP_TEST_FAULT(err_os, OS_ERR_NONE);
+}
+
 
 static void CreateSemaphores(void){
 
@@ -553,19 +602,17 @@ static  void  Bg_Task (void  *p_arg)
 
 	while (1) 
 	{
-		OSSemPend(&commands,                            
-			0,                                  
-			OS_OPT_PEND_BLOCKING,                
-			&ts,
-			&err_os); 
+
 
 		Draw_Background();
 
-		OSSemPost(&player,     
+		OSSemPost(&blocks,     
 			OS_OPT_POST_NONE,
 			&err_os);
 
-		OSSemPost(&blocks,     
+		Draw_Blocks();
+
+		OSSemPost(&player,     
 			OS_OPT_POST_NONE,
 			&err_os);
 
@@ -574,6 +621,12 @@ static  void  Bg_Task (void  *p_arg)
 			&err_os);
 
 		Draw_Enemys();
+
+		OSSemPend(&commands,                            
+			0,                                  
+			OS_OPT_PEND_BLOCKING,                
+			&ts,
+			&err_os); 
 
 		OSSemPost(&bombSem,     
 			OS_OPT_POST_NONE,
@@ -691,11 +744,12 @@ static  void Enemy_1 (void *p_arg)
 			OS_OPT_PEND_BLOCKING,                
 			&ts,
 			&err_os); 
-		/*if (ENEMYS_POS[0][0]== BOMBERMAN_POS_X && ENEMYS_POS[0][1] == BOMBERMAN_POS_Y)
+
+		if (ENEMYS_POS[0][0]== BOMBERMAN_POS_X && ENEMYS_POS[0][1] == BOMBERMAN_POS_Y)
 		{
-		Finish_Game();
-		}*/
-		printf("Posicao atual x%i y%i \n", ENEMYS_POS[0][0], ENEMYS_POS[0][0]);
+			Finish_Game();
+		}
+		//printf("Posicao atual x%i y%i \n", ENEMYS_POS[0][0], ENEMYS_POS[0][0]);
 		Catch_Bomberman(1,ENEMYS_POS[0][0],ENEMYS_POS[0][1]);//Enemy 1
 
 		if (ENEMYS_POS[0][0] == BOMBERMAN_POS_X && ENEMYS_POS[0][1] == BOMBERMAN_POS_Y)
@@ -940,55 +994,6 @@ static void Kill_Enemy(int i)
 }
 
 // Cria as tasks dos 3 inimigos
-static void Create_Enemys_Tasks () 
-{
-	OS_ERR  err_os;
-
-	OSTaskCreate((OS_TCB     *)&Enemy_1TCB,                
-		(CPU_CHAR   *)"Enemy_1",
-		(OS_TASK_PTR ) Enemy_1,
-		(void       *) 0,
-		(OS_PRIO     ) 7,
-		(CPU_STK    *)&Enemy_1Stk[0],
-		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE / 10u,
-		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE,
-		(OS_MSG_QTY  ) 0u,
-		(OS_TICK     ) 0u,
-		(void       *) 0,
-		(OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
-		(OS_ERR     *)&err_os);
-	APP_TEST_FAULT(err_os, OS_ERR_NONE);
-
-	OSTaskCreate((OS_TCB     *)&Enemy_2TCB,                
-		(CPU_CHAR   *)"Enemy_2",
-		(OS_TASK_PTR ) Enemy_2,
-		(void       *) 0,
-		(OS_PRIO     ) 7,
-		(CPU_STK    *)&Enemy_2Stk[0],
-		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE / 10u,
-		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE,
-		(OS_MSG_QTY  ) 0u,
-		(OS_TICK     ) 0u,
-		(void       *) 0,
-		(OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
-		(OS_ERR     *)&err_os);
-	APP_TEST_FAULT(err_os, OS_ERR_NONE);
-
-	OSTaskCreate((OS_TCB     *)&Enemy_3TCB,                
-		(CPU_CHAR   *)"Enemy_3",
-		(OS_TASK_PTR ) Enemy_3,
-		(void       *) 0,
-		(OS_PRIO     ) 7,
-		(CPU_STK    *)&Enemy_3Stk[0],
-		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE / 10u,
-		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE,
-		(OS_MSG_QTY  ) 0u,
-		(OS_TICK     ) 0u,
-		(void       *) 0,
-		(OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
-		(OS_ERR     *)&err_os);
-	APP_TEST_FAULT(err_os, OS_ERR_NONE);
-}
 
 // Função que recebe o código do movimento ou ação a ser realizado a o trata, criando um delay também para funcionar como debounce.
 static void Make_Move(int opt)
@@ -999,12 +1004,12 @@ static void Make_Move(int opt)
 	OS_ERR  err_os;
 	CPU_TS  ts;
 
-	/*OSSemPend(&commands,                            
-	0,                                  
-	OS_OPT_PEND_BLOCKING,                
-	&ts,
-	&err_os);
-	*/
+	OSSemPend(&commands,                            
+		0,                                  
+		OS_OPT_PEND_BLOCKING,                
+		&ts,
+		&err_os);
+
 	//if (WAITING_CLICK == 1) return; // Flag que bloquei o multiplo clique.
 	//WAITING_CLICK = 1;
 
@@ -1014,8 +1019,8 @@ static void Make_Move(int opt)
 		int canMove = nextMove == 0 || nextMove == 8 || nextMove == 3 || nextMove == 4 || nextMove == 5;
 		if (canMove)
 		{
-			img_player = img_bomberman_reverse;
 			BOMBERMAN_POS_X--;
+			img_player = img_bomberman_reverse;
 			BOMBERMAN_X -=  BLOCK_SIZE;
 		}
 	} else if (opt == 2) // UP
@@ -1033,8 +1038,8 @@ static void Make_Move(int opt)
 		int canMove = nextMove == 0 || nextMove == 8 || nextMove == 3 || nextMove == 4 || nextMove == 5;
 		if (canMove)
 		{
-			img_player = img_bomberman;
 			BOMBERMAN_POS_X++;
+			img_player = img_bomberman;
 			BOMBERMAN_X +=  BLOCK_SIZE;
 		}
 	} else if (opt == 4) // DOWN
@@ -1052,12 +1057,11 @@ static void Make_Move(int opt)
 			Put_Bomb();
 	}
 
-	//Draw_Background();
 	OSSemPost(&commands,     
 		OS_OPT_POST_NONE,
 		&err_os);
 
-	//OSTimeDlyHMSM(0,0,0,80,OS_OPT_TIME_DLY, &err_os);
+	//OSTimeDlyHMSM(0,0,0,10,OS_OPT_TIME_DLY, &err_os);
 	WAITING_CLICK = 0;
 
 }
@@ -1332,8 +1336,8 @@ static void Catch_Bomberman(int enemy_123 ,int x, int y){
 	int randomY; 
 	int distanceY;
 
-	randomX = 10;//rand()%15;
-	randomY = 6;//rand()%12;
+	randomX = BOMBERMAN_POS_X;
+	randomY = BOMBERMAN_POS_Y;
 
 	//Se o caminho do x esta mais perto do caminho do Y, prioridade o X
 
@@ -1494,19 +1498,33 @@ static void go_right(int enemy_123,int x, int y){
 	OS_ERR err_os;
 	CPU_TS ts;
 
+	
+	OSSemPend(&commands,                            
+		0,                                  
+		OS_OPT_PEND_BLOCKING,                
+		&ts,
+		&err_os);
 
-	OSSemPend(&enemy[enemy_123-1],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
+	LABIRINTO[y][x] = 0;
+	OSSemPend(&enemy[enemy_123-1],0,OS_OPT_PEND_BLOCKING, &ts,&err_os); //Protege a variáveel
 	x++;
-	ENEMYS_POS[enemy_123 - 1][0] = x;
-	OSSemPost(&enemy[enemy_123-1] ,OS_OPT_POST_NONE,&err_os);
-	Draw_Cover(ENEMYS_POS[enemy_123-1][0],ENEMYS_POS[enemy_123-1][1]);
-	OSTimeDlyHMSM(0,0,0,500,OS_OPT_TIME_DLY, &err_os);
 	Enemy_route(x,y);
+	OSSemPost(&enemy[enemy_123-1] ,OS_OPT_POST_NONE,&err_os);
+	ENEMYS_POS[enemy_123 - 1][0] = x;
+
 
 	if (ENEMYS_POS[enemy_123-1][0]== BOMBERMAN_POS_X && ENEMYS_POS[enemy_123-1][1] == BOMBERMAN_POS_Y)
 	{
 		Finish_Game();
 	}
+	
+	OSSemPost(&commands,     
+		OS_OPT_POST_NONE,
+		&err_os);
+
+	OSTimeDlyHMSM(0,0,0,400,OS_OPT_TIME_DLY, &err_os);
+
+
 
 }
 
@@ -1515,61 +1533,103 @@ static void go_down(int enemy_123,int x, int y){
 	OS_ERR err_os;
 	CPU_TS ts;
 
+	OSSemPend(&commands,                            
+		0,                                  
+		OS_OPT_PEND_BLOCKING,                
+		&ts,
+		&err_os);
+
+	LABIRINTO[y][x] = 0;
 	OSSemPend(&enemy[enemy_123-1],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	y++;
-	ENEMYS_POS[enemy_123 - 1][1] = y;
-	OSSemPost(&enemy[enemy_123-1] ,OS_OPT_POST_NONE,&err_os);
-	Draw_Cover(ENEMYS_POS[enemy_123-1][0],ENEMYS_POS[enemy_123-1][1]);
-	OSTimeDlyHMSM(0,0,0,500,OS_OPT_TIME_DLY, &err_os);
 	Enemy_route(x,y);
+	OSSemPost(&enemy[enemy_123-1] ,OS_OPT_POST_NONE,&err_os);
+	ENEMYS_POS[enemy_123 - 1][1] = y;
 
 	if (ENEMYS_POS[enemy_123-1][0]== BOMBERMAN_POS_X && ENEMYS_POS[enemy_123-1][1] == BOMBERMAN_POS_Y)
 	{
 		Finish_Game();
 	}
 
+	OSSemPost(&commands,     
+		OS_OPT_POST_NONE,
+		&err_os);
+
+
+	OSTimeDlyHMSM(0,0,0,400,OS_OPT_TIME_DLY, &err_os);
+
+
+
+
 }
+
 
 static void go_left(int enemy_123,int x, int y){
 
 	OS_ERR err_os;
 	CPU_TS ts;
 
+	OSSemPend(&commands,                            
+		0,                                  
+		OS_OPT_PEND_BLOCKING,                
+		&ts,
+		&err_os);
 
+	LABIRINTO[y][x] = 0;
 	OSSemPend(&enemy[enemy_123-1],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	x--;
-	ENEMYS_POS[enemy_123 - 1][0] = x;
-	OSTimeDlyHMSM(0,0,0,500,OS_OPT_TIME_DLY, &err_os);
-	Draw_Cover(ENEMYS_POS[enemy_123-1][0],ENEMYS_POS[enemy_123-1][1]);
-	OSSemPost(&enemy[enemy_123-1] ,OS_OPT_POST_NONE,&err_os);
-	printf("O x esta aqui %i \n",ENEMYS_POS[enemy_123 - 1][0]);
 	Enemy_route(x,y);
+	OSSemPost(&enemy[enemy_123-1] ,OS_OPT_POST_NONE,&err_os);
+	ENEMYS_POS[enemy_123 - 1][0] = x;
 
 	if (ENEMYS_POS[enemy_123-1][0]== BOMBERMAN_POS_X && ENEMYS_POS[enemy_123-1][1] == BOMBERMAN_POS_Y)
 	{
 		Finish_Game();
 	}
 
+	OSSemPost(&commands,     
+		OS_OPT_POST_NONE,
+		&err_os);
 
+	OSTimeDlyHMSM(0,0,0,400,OS_OPT_TIME_DLY, &err_os);
+
+
+
+
+
+
+	
 }
 
 static void go_up(int enemy_123,int x, int y){
 	OS_ERR err_os;
 	CPU_TS ts;
 
+	OSSemPend(&commands,                            
+		0,                                  
+		OS_OPT_PEND_BLOCKING,                
+		&ts,
+		&err_os);
 
+	LABIRINTO[y][x] = 0;
 	OSSemPend(&enemy[enemy_123-1],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	y--;
-	ENEMYS_POS[enemy_123 - 1][1] = y ;
-	OSSemPost(&enemy[enemy_123-1] ,OS_OPT_POST_NONE,&err_os);
-	Draw_Cover(ENEMYS_POS[enemy_123-1][0],ENEMYS_POS[enemy_123-1][1]);
-	OSTimeDlyHMSM(0,0,0,500,OS_OPT_TIME_DLY, &err_os);
 	Enemy_route(x,y);
+	OSSemPost(&enemy[enemy_123-1] ,OS_OPT_POST_NONE,&err_os);
+	ENEMYS_POS[enemy_123 - 1][1] = y ;
 
 	if (ENEMYS_POS[enemy_123-1][0]== BOMBERMAN_POS_X && ENEMYS_POS[enemy_123-1][1] == BOMBERMAN_POS_Y)
 	{
 		Finish_Game();
 	}
+
+	OSSemPost(&commands,     
+		OS_OPT_POST_NONE,
+		&err_os);
+
+	OSTimeDlyHMSM(0,0,0,400,OS_OPT_TIME_DLY, &err_os);
+
+
 
 }
 
