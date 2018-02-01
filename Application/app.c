@@ -31,7 +31,7 @@
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
 #define SIZE_TIJOLO_DEFAULT 40
-#define Enemy_delay 300
+#define Enemy_delay 200
 #define Player_delay 20
 #define BackGround_delay 100
 #define Enemys_number 3
@@ -244,6 +244,7 @@ static OS_SEM enemys;//Por que esse semaforo?
 static OS_SEM bombSem;
 static OS_SEM enemy[3];
 static OS_SEM enemy_turn; //Turno de cada oponente
+static OS_SEM enemy_killed[3];
 
 LRESULT CALLBACK HandleGUIEvents(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -513,6 +514,11 @@ static void CreateSemaphores(void){
 			&err_os);
 		APP_TEST_FAULT(err_os, OS_ERR_NONE);
 
+		OSSemCreate(&enemy_killed[i],
+			"Mutex de cada inimigo",
+			1,
+			&err_os);
+		APP_TEST_FAULT(err_os, OS_ERR_NONE);
 	}
 
 
@@ -582,8 +588,8 @@ static  void  Bg_Task (void  *p_arg)
 		Draw_Blocks();
 
 		OSSemPost(&enemys,     
-		OS_OPT_POST_NONE,
-		&err_os);
+			OS_OPT_POST_NONE,
+			&err_os);
 
 		Draw_Enemys();
 
@@ -706,16 +712,16 @@ static  void Enemy_Task(void *p_arg)
 	CPU_TS  ts;
 	int i = (int)p_arg;
 
-	while (1) 
-	{		
-
-		OSSemPend(&enemys,                            
+	OSSemPend(&enemys,                            
 		0,                                  
 		OS_OPT_PEND_BLOCKING,                
 		&ts,
 		&err_os); 
-		
-		Draw_Enemy(i, img_enemy1, ENEMYS_POS[i][0], ENEMYS_POS[i][1]);
+
+	while (1) 
+	{		
+
+		//Draw_Enemy(i, img_enemy1, ENEMYS_POS[i][0], ENEMYS_POS[i][1]);
 
 		if (ENEMYS_POS[i][0]== BOMBERMAN_POS_X && ENEMYS_POS[i][1] == BOMBERMAN_POS_Y)
 		{
@@ -773,7 +779,6 @@ static void Draw_Background(void)
 	GUI_DrawImage(img_back, 4, 0, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGTH, 0); // Coloca o Fundo com offset proposital de 4px em x.
 }
 
-
 // Desenha o player na posição atual
 static void Draw_Player(void)
 {
@@ -819,10 +824,9 @@ static void Draw_Bombs()
 		OS_ERR err_os;
 		for (i = 0; i < num_bombs; i++) 
 		{
-			printf("Numero de bombas %i \n" , num_bombs);
+
 			if (BOMBS[i][2] > 0) { // Verifica se está na hora de explodir a bomba.
 				BOMBS[i][2]--; // Decrementa quanto tempo falta para a bomba explodir.
-				printf("Ta desenhando a bomba %i \n", BOMBS[i][2]);
 
 				GUI_DrawImage(img_bomb, // *img
 					BOMBS[i][0] * BLOCK_SIZE, // posx
@@ -882,14 +886,17 @@ static void Draw_Explosion(HBITMAP *img, int x, int y)
 // Quando um inimigo é morto, é importante zerar sua matrix de posições;
 static void Kill_Enemy(int i)
 {
-	OS_ERR os_err;
+	OS_ERR err_os;
+	CPU_TS ts;
 
+
+	
 	ENEMYS_POS[i][0] = 0;
 	ENEMYS_POS[i][1] = 0;
 
 	enemy_count--;
 
-	OSTaskDel(&Enemy_Task_TCB[i], &os_err);
+	OSTaskDel(&Enemy_Task_TCB[i], &err_os);
 
 }
 
@@ -1187,7 +1194,7 @@ LRESULT CALLBACK HandleGUIEvents(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			// redesenha as imagens da tela
 			GUI_DrawImage(img, imgXPos, imgYPos, 100, 100,1);
 			*/
-			
+
 		}
 		return DefWindowProc(hwnd, msg, wParam, lParam);
 		break;
@@ -1240,21 +1247,16 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 
 	OSSemPend(&commands,0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
-	randomX = rand()%15;BOMBERMAN_POS_X;
-	randomY = rand()%12;BOMBERMAN_POS_Y;
+	randomX = BOMBERMAN_POS_X;//rand()%15;//
+	randomY = BOMBERMAN_POS_Y;//rand()%12;//
 
-	//printf("Entrou no Catch enemy %i \n",this_enemy);
 	OSSemPost(&commands ,OS_OPT_POST_NONE,&err_os);
-	//Se o caminho do x esta mais perto do caminho do Y, prioridade o X
 
-	//OSSemPend(&enemys,0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
-	//printf("Entrou na rota inimigo %i \n",this_enemy);
 	Enemy_route(this_enemy);
 	distanceX = randomX - ENEMYS_POS[this_enemy][0];
 	distanceY = randomY - ENEMYS_POS[this_enemy][1];
-	OSSemPost(&enemy[this_enemy] ,OS_OPT_POST_NONE,&err_os); 
 
-	//printf("Saiu da rota");
+	OSSemPost(&enemy[this_enemy] ,OS_OPT_POST_NONE,&err_os); 
 
 	if(distanceX<=0){
 
@@ -1347,22 +1349,18 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 		}
 	}
 
-	printf("Saiu rota mesmo");
-
-
 }
 
 
 bool find_wall_blocks(int i, int j){
 
-
 	if(LABIRINTO[j][i] != 0){ // Se tem bloco, paredes, ou bombas
-		//printf("Posicao do bloco ou parede true  X %i , Y %i \n",i , j);
+
 		return true;
 
 	}else
 	{
-		//printf("Posicao do bloco ou parede false X %i , Y %i \n",i , j);
+
 		return false;
 
 	}
@@ -1412,17 +1410,17 @@ static void go_right(int this_enemy){
 	int x = ENEMYS_POS[this_enemy][0];
 	int y = ENEMYS_POS[this_enemy][1];
 
-	OSSemPend(&commands,                            
-		0,                                  
-		OS_OPT_PEND_BLOCKING,                
-		&ts,
-		&err_os);
+	/*OSSemPend(&commands,                            
+	0,                                  
+	OS_OPT_PEND_BLOCKING,                
+	&ts,
+	&err_os);
 
 	OSSemPend(&player,                            
-		0,                                  
-		OS_OPT_PEND_BLOCKING,                
-		&ts,
-		&err_os);
+	0,                                  
+	OS_OPT_PEND_BLOCKING,                
+	&ts,
+	&err_os);*/
 
 	LABIRINTO[y][x] = 0;
 
@@ -1436,12 +1434,12 @@ static void go_right(int this_enemy){
 		Finish_Game();
 	}
 
-	OSSemPost(&commands,     
-		OS_OPT_POST_NONE,
-		&err_os);
+	/*OSSemPost(&commands,     
+	OS_OPT_POST_NONE,
+	&err_os);
 	OSSemPost(&player,     
-		OS_OPT_POST_NONE,
-		&err_os);
+	OS_OPT_POST_NONE,
+	&err_os);*/
 	OSTimeDlyHMSM(0,0,0,Enemy_delay,OS_OPT_TIME_DLY, &err_os);
 
 
@@ -1456,23 +1454,23 @@ static void go_down(int this_enemy){
 	int x = ENEMYS_POS[this_enemy][0];
 	int y = ENEMYS_POS[this_enemy][1];
 
-	OSSemPend(&commands,                            
-		0,                                  
-		OS_OPT_PEND_BLOCKING,                
-		&ts,
-		&err_os);
+	/*OSSemPend(&commands,                            
+	0,                                  
+	OS_OPT_PEND_BLOCKING,                
+	&ts,
+	&err_os);
 
 	OSSemPend(&player,                            
-		0,                                  
-		OS_OPT_PEND_BLOCKING,                
-		&ts,
-		&err_os);
+	0,                                  
+	OS_OPT_PEND_BLOCKING,                
+	&ts,
+	&err_os);*/
 
 	LABIRINTO[y][x] = 0;
 	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	ENEMYS_POS[this_enemy][1]++;
 	Enemy_route(this_enemy);
-	
+
 	OSSemPost(&enemy[this_enemy] ,OS_OPT_POST_NONE,&err_os);
 
 	if (ENEMYS_POS[this_enemy][0]== BOMBERMAN_POS_X && ENEMYS_POS[this_enemy][1] == BOMBERMAN_POS_Y)
@@ -1480,13 +1478,13 @@ static void go_down(int this_enemy){
 		Finish_Game();
 	}
 
-	OSSemPost(&commands,     
-		OS_OPT_POST_NONE,
-		&err_os);
+	/*OSSemPost(&commands,     
+	OS_OPT_POST_NONE,
+	&err_os);
 
 	OSSemPost(&player,     
-		OS_OPT_POST_NONE,
-		&err_os);
+	OS_OPT_POST_NONE,
+	&err_os);*/
 	OSTimeDlyHMSM(0,0,0,Enemy_delay,OS_OPT_TIME_DLY, &err_os);
 
 
@@ -1503,16 +1501,16 @@ static void go_left(int this_enemy){
 	int x = ENEMYS_POS[this_enemy][0];
 	int y = ENEMYS_POS[this_enemy][1];
 
-	OSSemPend(&commands,                            
-		0,                                  
-		OS_OPT_PEND_BLOCKING,                
-		&ts,
-		&err_os);
+	/*OSSemPend(&commands,                            
+	0,                                  
+	OS_OPT_PEND_BLOCKING,                
+	&ts,
+	&err_os);
 	OSSemPend(&player,                            
-		0,                                  
-		OS_OPT_PEND_BLOCKING,                
-		&ts,
-		&err_os);
+	0,                                  
+	OS_OPT_PEND_BLOCKING,                
+	&ts,
+	&err_os);*/
 
 	LABIRINTO[y][x] = 0;
 	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
@@ -1527,12 +1525,12 @@ static void go_left(int this_enemy){
 		Finish_Game();
 	}
 
-	OSSemPost(&commands,     
-		OS_OPT_POST_NONE,
-		&err_os);
+	/*OSSemPost(&commands,     
+	OS_OPT_POST_NONE,
+	&err_os);
 	OSSemPost(&player,     
-		OS_OPT_POST_NONE,
-		&err_os);
+	OS_OPT_POST_NONE,
+	&err_os);*/
 
 	OSTimeDlyHMSM(0,0,0,Enemy_delay,OS_OPT_TIME_DLY, &err_os);
 
@@ -1545,24 +1543,24 @@ static void go_left(int this_enemy){
 }
 
 static void go_up(int this_enemy){
-	
+
 	OS_ERR err_os;
 	CPU_TS ts;
 
 	int x = ENEMYS_POS[this_enemy][0];
 	int y = ENEMYS_POS[this_enemy][1];
 
-	OSSemPend(&commands,                            
-		0,                                  
-		OS_OPT_PEND_BLOCKING,                
-		&ts,
-		&err_os);
+	/*OSSemPend(&commands,                            
+	0,                                  
+	OS_OPT_PEND_BLOCKING,                
+	&ts,
+	&err_os);
 
 	OSSemPend(&player,                            
-		0,                                  
-		OS_OPT_PEND_BLOCKING,                
-		&ts,
-		&err_os);
+	0,                                  
+	OS_OPT_PEND_BLOCKING,                
+	&ts,
+	&err_os);*/
 
 	LABIRINTO[y][x] = 0;
 
@@ -1576,25 +1574,16 @@ static void go_up(int this_enemy){
 		Finish_Game();
 	}
 
-	OSSemPost(&commands,     
-		OS_OPT_POST_NONE,
-		&err_os);
+	/*OSSemPost(&commands,     
+	OS_OPT_POST_NONE,
+	&err_os);
 
 	OSSemPost(&player,     
-		OS_OPT_POST_NONE,
-		&err_os);
+	OS_OPT_POST_NONE,
+	&err_os);*/
 
 	OSTimeDlyHMSM(0,0,0,Enemy_delay,OS_OPT_TIME_DLY, &err_os);
 
 
 
 }
-
-
-
-
-
-
-
-
-
