@@ -1,7 +1,7 @@
 /*
 *********************************************************************************************************
 *
-*                                              TRABALHO PRÁTICO - BCC722
+*                                              TRABALHO PRï¿½TICO - BCC722
 *
 *                                                  JOGO BOMBERMAN
 *
@@ -35,6 +35,8 @@
 #define Player_delay 20
 #define BackGround_delay 100
 #define Enemys_number 3
+#define VIVO 1
+#define MORTO 0
 
 
 typedef enum {false=0, true=1} bool;
@@ -45,7 +47,7 @@ typedef enum {false=0, true=1} bool;
 *********************************************************************************************************
 */
 
-int GOD_MODE = 0; // Em desenvolvimento = 1. Produção = 0;
+int GOD_MODE = 0; // Em desenvolvimento = 1. Produï¿½ï¿½o = 0;
 
 enum GRAPHIC_OBJS{
 	ID_BUTTON_1 = 0,
@@ -59,10 +61,10 @@ static int BACKGROUND_IMAGE_HEIGTH = 520; // Altura da tela. 520 = 13 * 40.
 static int MAP_WIDTH = 17; // Largura da tela em pontos da matrix.
 static int MAP_HEIGTH = 13; // Altura da tela em pontos da matrix.
 
-int BLOCK_SIZE = 40; // Tamanho básico de cada bloco.
+int BLOCK_SIZE = 40; // Tamanho bï¿½sico de cada bloco.
 
-int MAX_BOMBS = 100; // Número máximo de bombas que podem ser inserids.
-int BOMBS_DELAY = 50; // Delay de explosão das 
+int MAX_BOMBS = 100; // Nï¿½mero mï¿½ximo de bombas que podem ser inserids.
+int BOMBS_DELAY = 50; // Delay de explosï¿½o das 
 
 /*
 *********************************************************************************************************
@@ -103,7 +105,7 @@ HBITMAP *img_cover, *img_back, *img_block,*img_bomb, *img_player, *img_bomberman
 
 /*
 *********************************************************************************************************
-LABIRINTOS - CODIFICAÇÃO DOS OBJETOS
+LABIRINTOS - CODIFICAï¿½ï¿½O DOS OBJETOS
 0 - vazio
 1 - parede
 2 - tijolo
@@ -112,13 +114,13 @@ LABIRINTOS - CODIFICAÇÃO DOS OBJETOS
 5 - inimigo 3
 6 - bomba
 7 - *
-8 - rastro da explosão
+8 - rastro da explosï¿½o
 *********************************************************************************************************/
 
 
 /*
-* Labirinto dos obstáculos
-* O acesso à matrix 'LABIRINTO' deve ser feito com posições y e x invertidas.
+* Labirinto dos obstï¿½culos
+* O acesso ï¿½ matrix 'LABIRINTO' deve ser feito com posiï¿½ï¿½es y e x invertidas.
 * Ex.: LABIRINTO[Y][X];
 */
 int LABIRINTO[13][17] = 
@@ -137,39 +139,40 @@ int LABIRINTO[13][17] =
 ,{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
 };
 
-// Variáveis declaradas do módulo da GUI
+// Variï¿½veis declaradas do mï¿½dulo da GUI
 extern HWND hwnd; 
 extern HDC hdc;
 extern MSG Msg;
 
-int BOMBERMAN_POS_X = 1; // Posição x do bomberbam na matrix LABIRINTO. 1 = posição inicial.
-int BOMBERMAN_POS_Y = 1; // Posição y do bomberbam na matrix LABIRINTO. 1 = posição inicial.
+int BOMBERMAN_POS_X = 1; // Posiï¿½ï¿½o x do bomberbam na matrix LABIRINTO. 1 = posiï¿½ï¿½o inicial.
+int BOMBERMAN_POS_Y = 1; // Posiï¿½ï¿½o y do bomberbam na matrix LABIRINTO. 1 = posiï¿½ï¿½o inicial.
 
-int BOMBERMAN_X = 40; // Posição x do bomberbam em relação à tela, ou seja, a posição em px. 40 = posição inicial.
-int BOMBERMAN_Y = 40; // Posição x do bomberbam em relação à tela, ou seja, a posição em px. 40 = posição inicial.
+int BOMBERMAN_X = 40; // Posiï¿½ï¿½o x do bomberbam em relaï¿½ï¿½o ï¿½ tela, ou seja, a posiï¿½ï¿½o em px. 40 = posiï¿½ï¿½o inicial.
+int BOMBERMAN_Y = 40; // Posiï¿½ï¿½o x do bomberbam em relaï¿½ï¿½o ï¿½ tela, ou seja, a posiï¿½ï¿½o em px. 40 = posiï¿½ï¿½o inicial.
 
 int WAITING_CLICK = 0; // Flag que bloquei o multi click na mesma tecla.
 int BOMB_ON = 0; // Flag que sinaliza que uma bomba foi plantada.
 int POWER_ON = 1; // Flag que sinaliza se o bomberman adquiriu algum poder. 
 
-int num_bombs = 0; // Número total de bombas.
-int placed_bombs = 0; // Número total de bombas colocadas.
+int num_bombs = 0; // Nï¿½mero total de bombas.
+int placed_bombs = 0; // Nï¿½mero total de bombas colocadas.
 
 int bomb_positionX = 0;
 int bomb_positionY = 0;
-int enemy_count  = 3; // Número de inimigos.
+int enemy_count  = 3; // Nï¿½mero de inimigos.
 
 static int directions[4];
 
+static int estado[Enemys_number];
 /*
-* Matrix de bombas. Será inicializada na função Initiate_Bombs_Matrix(void).
-* A primeira coluna de cada entrada representa a posição em X, a segunda em Y e a terceira o tempo de detonação.
+* Matrix de bombas. Serï¿½ inicializada na funï¿½ï¿½o Initiate_Bombs_Matrix(void).
+* A primeira coluna de cada entrada representa a posiï¿½ï¿½o em X, a segunda em Y e a terceira o tempo de detonaï¿½ï¿½o.
 */
 int BOMBS[100][3];
 
 /*
-* Matrix de posição dos inimigos.
-* A primeira coluna de cada entrada representa a posição em X, a segunda em Y.
+* Matrix de posiï¿½ï¿½o dos inimigos.
+* A primeira coluna de cada entrada representa a posiï¿½ï¿½o em X, a segunda em Y.
 */
 int ENEMYS_POS[3][2] = 
 { { 15 ,  1 }
@@ -198,7 +201,7 @@ int ENEMYS_POS[3][2] =
 /*
 *********************************************************************************************************
 *                                      LOCAL FUNCTION PROTOTYPES
-*									Declaração das Tarefas Criadas
+*									Declaraï¿½ï¿½o das Tarefas Criadas
 *********************************************************************************************************
 */
 static  void  App_TaskStart (void  *p_arg);
@@ -441,7 +444,7 @@ static void Create_Enemys_Tasks ()
 
 	int i;
 	for (i=0;i<Enemys_number;i++){
-
+		estado[i] = VIVO;
 		OSTaskCreate((OS_TCB     *)&Enemy_Task_TCB[i],                
 			(CPU_CHAR   *)"Enemy %i",
 			(OS_TASK_PTR ) Enemy_Task,
@@ -469,7 +472,7 @@ static void CreateSemaphores(void){
 	OS_ERR  err_os;
 
 	int i;
-	// Semáforos
+	// Semï¿½foros
 	OSSemCreate(&player,
 		"Player",
 		1,
@@ -524,7 +527,7 @@ static void CreateSemaphores(void){
 
 }
 
-// Task responsável por travar os comandos
+// Task responsï¿½vel por travar os comandos
 static  void  Blocks_Task (void  *p_arg)
 {
 	OS_ERR  err_os;
@@ -613,7 +616,7 @@ static  void  Bg_Task (void  *p_arg)
 	}
 }
 
-// Task responsável por verificar, desenhar e desencadear a acao de explodir bombas.
+// Task responsï¿½vel por verificar, desenhar e desencadear a acao de explodir bombas.
 static  void  Bombs_Task (int  p_arg[])
 {
 	OS_ERR  err_os;
@@ -691,7 +694,7 @@ static  void  Explosion_Task (int  p_arg[])
 		OSTimeDlyHMSM(0,0,0,50,OS_OPT_TIME_DLY, &err_os);
 	}
 
-	// Remove os rastros de explosão após passar o tempo definido por explosion_time.
+	// Remove os rastros de explosï¿½o apï¿½s passar o tempo definido por explosion_time.
 	for (k = 1; k < 12; k++) 
 	{
 		for (j = 1; j < 16; j++) 
@@ -711,6 +714,7 @@ static  void Enemy_Task(void *p_arg)
 	OS_ERR  err_os;
 	CPU_TS  ts;
 	int i = (int)p_arg;
+	
 
 	OSSemPend(&enemys,                            
 		0,                                  
@@ -718,7 +722,7 @@ static  void Enemy_Task(void *p_arg)
 		&ts,
 		&err_os); 
 
-	while (1) 
+	while (estado[i] == VIVO)
 	{		
 
 		//Draw_Enemy(i, img_enemy1, ENEMYS_POS[i][0], ENEMYS_POS[i][1]);
@@ -727,15 +731,15 @@ static  void Enemy_Task(void *p_arg)
 		{
 			Finish_Game();
 		}
-		printf("Posicao atual do inimigo %i x%i y%i \n", i,ENEMYS_POS[i][0], ENEMYS_POS[i][0]);
+		//printf("Posicao atual do inimigo %i x%i y%i \n", i,ENEMYS_POS[i][0], ENEMYS_POS[i][0]);
 
 		OSSemPend(&enemy_turn,                            
 			0,                                  
 			OS_OPT_PEND_BLOCKING,                
 			&ts,
 			&err_os); 
-
-		Catch_Bomberman(i,ENEMYS_POS[i][0],ENEMYS_POS[i][1]);//Enemy 1
+		if(estado[i] == VIVO)
+			Catch_Bomberman(i,ENEMYS_POS[i][0],ENEMYS_POS[i][1]);//Enemy 1
 
 		OSSemPost(&enemy_turn ,OS_OPT_POST_NONE,&err_os);
 
@@ -748,6 +752,7 @@ static  void Enemy_Task(void *p_arg)
 		OS_OPT_POST_NONE,
 		&err_os);*/
 	}
+	while(estado[i] == MORTO) {}
 }
 
 
@@ -762,6 +767,7 @@ static void Draw_Enemys()
 // Desenha um inimigo qualquer na tela
 static void Draw_Enemy(int enemy, HBITMAP *img, int x, int y)
 {
+	if (estado[enemy] == MORTO) return;
 	if(( x <= 0)||(y <=0)) return;
 	GUI_DrawImage(img, // *img
 		x * BLOCK_SIZE, // posx
@@ -770,7 +776,7 @@ static void Draw_Enemy(int enemy, HBITMAP *img, int x, int y)
 		BLOCK_SIZE, // height
 		2); // index
 
-	LABIRINTO[y][x] = enemy + 3; // O código do inimigo é o seu número +3
+	LABIRINTO[y][x] = enemy + 3; // O cï¿½digo do inimigo ï¿½ o seu nï¿½mero +3
 }
 
 // Re-desenha o background do jogo.
@@ -779,7 +785,7 @@ static void Draw_Background(void)
 	GUI_DrawImage(img_back, 4, 0, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGTH, 0); // Coloca o Fundo com offset proposital de 4px em x.
 }
 
-// Desenha o player na posição atual
+// Desenha o player na posiï¿½ï¿½o atual
 static void Draw_Player(void)
 {
 	GUI_DrawImage(img_player, // *img
@@ -825,7 +831,7 @@ static void Draw_Bombs()
 		for (i = 0; i < num_bombs; i++) 
 		{
 
-			if (BOMBS[i][2] > 0) { // Verifica se está na hora de explodir a bomba.
+			if (BOMBS[i][2] > 0) { // Verifica se estï¿½ na hora de explodir a bomba.
 				BOMBS[i][2]--; // Decrementa quanto tempo falta para a bomba explodir.
 
 				GUI_DrawImage(img_bomb, // *img
@@ -839,7 +845,7 @@ static void Draw_Bombs()
 			{
 				Explode(BOMBS[i]);
 
-				// Define como 0 a posição da bomba explodida, ou seja, fora do mapa alcançável.
+				// Define como 0 a posiï¿½ï¿½o da bomba explodida, ou seja, fora do mapa alcanï¿½ï¿½vel.
 				BOMBS[i][0] = 0;
 				BOMBS[i][1] = 0;
 				BOMBS[i][2] = 0;
@@ -851,7 +857,7 @@ static void Draw_Bombs()
 	}
 }
 
-// Desenha de fato as explosões e mata as tasks dos inimigos, caso sejam atingidos.
+// Desenha de fato as explosï¿½es e mata as tasks dos inimigos, caso sejam atingidos.
 static void Draw_Explosion(HBITMAP *img, int x, int y)
 {
 	//printf("%d   ", x);
@@ -882,8 +888,8 @@ static void Draw_Explosion(HBITMAP *img, int x, int y)
 	LABIRINTO[y][x] = 8;
 }
 
-// Função responsável por matar as tasks dos inimigos quando são atingidos por explosões.
-// Quando um inimigo é morto, é importante zerar sua matrix de posições;
+// Funï¿½ï¿½o responsï¿½vel por matar as tasks dos inimigos quando sï¿½o atingidos por explosï¿½es.
+// Quando um inimigo ï¿½ morto, ï¿½ importante zerar sua matrix de posiï¿½ï¿½es;
 static void Kill_Enemy(int i)
 {
 	OS_ERR err_os;
@@ -895,17 +901,20 @@ static void Kill_Enemy(int i)
 	ENEMYS_POS[i][1] = 0;
 
 	enemy_count--;
-
-	OSTaskDel(&Enemy_Task_TCB[i], &err_os);
-
+	printf("-------------------------- enemy count %d ",enemy_count);
+	if (enemy_count == 0) {
+		Finish_Game();
+	}
+	//OSTaskDel(&Enemy_Task_TCB[i], &err_os);
+	estado[i] = VIVO;
 }
 
 // Cria as tasks dos 3 inimigos
 
-// Função que recebe o código do movimento ou ação a ser realizado a o trata, criando um delay também para funcionar como debounce.
+// Funï¿½ï¿½o que recebe o cï¿½digo do movimento ou aï¿½ï¿½o a ser realizado a o trata, criando um delay tambï¿½m para funcionar como debounce.
 static void Make_Move(int opt)
 {
-	/* O acesso à matrix 'LABIRINTO' deve ser feito com posições y e x invertidas.
+	/* O acesso ï¿½ matrix 'LABIRINTO' deve ser feito com posiï¿½ï¿½es y e x invertidas.
 	*  Ex.: LABIRINTO[Y][X];
 	*/
 	OS_ERR  err_os;
@@ -960,7 +969,7 @@ static void Make_Move(int opt)
 		}
 	} else if (opt == 5) // PLANT BOMM (SPACE)
 	{
-		if (BOMB_ON == 0) // Caso não haja bombas no mapa, é permitido colocar uma.
+		if (BOMB_ON == 0) // Caso nï¿½o haja bombas no mapa, ï¿½ permitido colocar uma.
 			Put_Bomb();
 	}
 
@@ -975,7 +984,7 @@ static void Make_Move(int opt)
 
 }
 
-// Planta de fato a bomba na posição atual do bomberman;
+// Planta de fato a bomba na posiï¿½ï¿½o atual do bomberman;
 static void Put_Bomb(void) 
 {
 	OS_ERR err_os;
@@ -997,12 +1006,12 @@ static void Put_Bomb(void)
 	placed_bombs++;
 
 	printf("Posicao bin laden Y %i e C %i \n", BOMBERMAN_POS_Y,BOMBERMAN_POS_X);
-	LABIRINTO[BOMBERMAN_POS_Y][BOMBERMAN_POS_X] = 6; // Define na matrix de posições a posição da bomba
+	LABIRINTO[BOMBERMAN_POS_Y][BOMBERMAN_POS_X] = 6; // Define na matrix de posiï¿½ï¿½es a posiï¿½ï¿½o da bomba
 
 
 }
 
-// Cria a task responsável pela explosão da bomba na posição x = bomb[0], y = bomb[1]
+// Cria a task responsï¿½vel pela explosï¿½o da bomba na posiï¿½ï¿½o x = bomb[0], y = bomb[1]
 static void Explode(int bomb[2])
 {
 	OS_ERR  err_os;
@@ -1014,7 +1023,7 @@ static void Explode(int bomb[2])
 	OSTaskCreate((OS_TCB     *)&Explosion_TaskTCB,                
 		(CPU_CHAR   *)"Explosion TASK",
 		(OS_TASK_PTR ) Explosion_Task,
-		bomb, // array contendo a posição central da explosão passada para a task Explosion_Task.
+		bomb, // array contendo a posiï¿½ï¿½o central da explosï¿½o passada para a task Explosion_Task.
 		(OS_PRIO     ) 5,
 		(CPU_STK    *)&Explosion_TaskStk[0],
 		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE / 10u,
@@ -1029,7 +1038,7 @@ static void Explode(int bomb[2])
 	num_bombs--;
 }
 
-// Inicializa a matrix de bombas com 0 (não há nenhuma no início do jogo).
+// Inicializa a matrix de bombas com 0 (nï¿½o hï¿½ nenhuma no inï¿½cio do jogo).
 static void Initiate_Bombs_Matrix(void)
 {
 	int i;
@@ -1039,7 +1048,7 @@ static void Initiate_Bombs_Matrix(void)
 	{
 		for (j = 0; j < 3; j++) 
 		{
-			BOMBS[i][j] = 0; // Todas as bombas possíveis são inicializadas na posição (0,0) pois está (fora do mapa jogável) .
+			BOMBS[i][j] = 0; // Todas as bombas possï¿½veis sï¿½o inicializadas na posiï¿½ï¿½o (0,0) pois estï¿½ (fora do mapa jogï¿½vel) .
 		}
 	}
 }
@@ -1048,20 +1057,28 @@ static void Initiate_Bombs_Matrix(void)
 static void Finish_Game(void) 
 {
 	OS_ERR  err_os;
-
+	int i;
 	if (GOD_MODE == 1) 
 	{
 		printf("\nDeuses nunca perdem o jogo.");
 		return;
 	}
 
-
-	// Caso o usuário perca o jogo, todas as tasks são mortas.
-	printf("Game Over");
-	/*OSTaskDel(&Player_TaskTCB, &err_os);
-	APP_TEST_FAULT(err_os, OS_ERR_NONE);*/
+	printf("inimigos: %d ",enemy_count);
+	if (enemy_count > 0) {
+		// Caso o usuï¿½rio perca o jogo, todas as tasks sï¿½o mortas.
+		printf("Game Over");
+	}
+	else {
+		printf("VOCE GANHOU CHAMPS!");
+	}
+	OSTaskDel(&Player_TaskTCB, &err_os);
+	APP_TEST_FAULT(err_os, OS_ERR_NONE);
 	/*OSTaskDel(&Bombs_TaskTCB, &err_os);
 	APP_TEST_FAULT(err_os, OS_ERR_NONE);*/
+	for (i = 0; i < Enemys_number; i++) {
+		OSTaskDel(&Enemy_Task_TCB[i], &err_os);
+	}
 	OSTaskDel(&AppStartTaskTCB, &err_os);
 	APP_TEST_FAULT(err_os, OS_ERR_NONE);
 
@@ -1236,7 +1253,7 @@ LRESULT CALLBACK HandleGUIEvents(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 //Funcao que ira calcular a melhor trajetoria para alcancar o bomberman
 
 static void Catch_Bomberman(int this_enemy ,int x, int y){
-
+	if (estado[this_enemy] == MORTO) return;
 	OS_ERR err_os;
 	CPU_TS ts;
 
@@ -1245,6 +1262,7 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 	int randomY; 
 	int distanceY;
 
+	
 	OSSemPend(&commands,0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	randomX = BOMBERMAN_POS_X;//rand()%15;//
@@ -1421,10 +1439,10 @@ static void go_right(int this_enemy){
 	OS_OPT_PEND_BLOCKING,                
 	&ts,
 	&err_os);*/
+	if (estado[this_enemy] == MORTO) return;
+	if (x > 0 && y > 0) LABIRINTO[y][x] = 0;
 
-	LABIRINTO[y][x] = 0;
-
-	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os); //Protege a variáveel
+	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os); //Protege a variï¿½veel
 	ENEMYS_POS[this_enemy][0]++;
 	Enemy_route(this_enemy);
 	OSSemPost(&enemy[this_enemy] ,OS_OPT_POST_NONE,&err_os);
@@ -1450,7 +1468,7 @@ static void go_down(int this_enemy){
 
 	OS_ERR err_os;
 	CPU_TS ts;
-
+	
 	int x = ENEMYS_POS[this_enemy][0];
 	int y = ENEMYS_POS[this_enemy][1];
 
@@ -1465,8 +1483,8 @@ static void go_down(int this_enemy){
 	OS_OPT_PEND_BLOCKING,                
 	&ts,
 	&err_os);*/
-
-	LABIRINTO[y][x] = 0;
+	if (estado[this_enemy] == MORTO) return;
+	if(x > 0 && y > 0) LABIRINTO[y][x] = 0;
 	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	ENEMYS_POS[this_enemy][1]++;
 	Enemy_route(this_enemy);
@@ -1511,8 +1529,8 @@ static void go_left(int this_enemy){
 	OS_OPT_PEND_BLOCKING,                
 	&ts,
 	&err_os);*/
-
-	LABIRINTO[y][x] = 0;
+	if (estado[this_enemy] == MORTO) return;
+	if (x > 0 && y > 0) LABIRINTO[y][x] = 0;
 	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 
 	ENEMYS_POS[this_enemy][0]--;
@@ -1561,8 +1579,8 @@ static void go_up(int this_enemy){
 	OS_OPT_PEND_BLOCKING,                
 	&ts,
 	&err_os);*/
-
-	LABIRINTO[y][x] = 0;
+	if (estado[this_enemy] == MORTO) return;
+	if (x > 0 && y > 0) LABIRINTO[y][x] = 0;
 
 	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	ENEMYS_POS[this_enemy][1]-- ;
