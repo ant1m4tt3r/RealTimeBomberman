@@ -1,7 +1,7 @@
 /*
 *********************************************************************************************************
 *
-*                                              TRABALHO PR¡TICO - BCC722
+*                                              TRABALHO PR√ÅTICO - BCC722
 *
 *                                                  JOGO BOMBERMAN
 *
@@ -26,17 +26,24 @@
 
 // biblioteca 
 #include "gui.h"
+
+#include <stdlib.h>
+
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
 #define SIZE_TIJOLO_DEFAULT 40
 
+
+typedef int bool;
+#define true 1
+#define false 0
 /*
 *********************************************************************************************************
 *                                           LOCAL CONSTANTS
 *********************************************************************************************************
 */
 
-int GOD_MODE = 0; // Em desenvolvimento = 1. ProduÁ„o = 0;
+int GOD_MODE = 0; // Em desenvolvimento = 1. ProduÔøΩÔøΩo = 0;
 
 enum GRAPHIC_OBJS{
 	ID_BUTTON_1 = 0,
@@ -50,10 +57,10 @@ static int BACKGROUND_IMAGE_HEIGTH = 520; // Altura da tela. 520 = 13 * 40.
 static int MAP_WIDTH = 17; // Largura da tela em pontos da matrix.
 static int MAP_HEIGTH = 13; // Altura da tela em pontos da matrix.
 
-int BLOCK_SIZE = 40; // Tamanho b·sico de cada bloco.
+int BLOCK_SIZE = 40; // Tamanho bÔøΩsico de cada bloco.
 
-int MAX_BOMBS = 100; // N˙mero m·ximo de bombas que podem ser inserids.
-int BOMBS_DELAY = 50; // Delay de explos„o das 
+int MAX_BOMBS = 100; // NÔøΩmero mÔøΩximo de bombas que podem ser inserids.
+int BOMBS_DELAY = 50; // Delay de explosÔøΩo das 
 
 /*
 *********************************************************************************************************
@@ -97,10 +104,29 @@ static  CPU_STK  Blocks_TaskStk[APP_TASK_START_STK_SIZE];
 // HBITMAP * img;
 HBITMAP *img_cover, *img_back, *img_block,*img_bomb, *img_player, *img_bomberman, *img_bomberman_reverse, *img_explosion_center,*img_explosion_horizontal, *img_explosion_vertical, *img_fogo_vertical, *img_enemy1, *img_enemy2, *img_enemy3;
 
+/*
+*********************************************************************************************************
+*                                       LOCAL GLOBAL STRUCTS
+*********************************************************************************************************
+*/
+// e.g. posicao [3][5] teria row 3, col 5 -- inverter?
+struct Location {
+   int row; 
+   int col;
+};
+
+// Uma struct que possui uma serie de Localizacoes
+struct Queue {
+    struct Location* contents; // ptr para array alocado dinamicamente
+    int tail; // quantas localizacoes foram adicionadas?
+                // (index do proximo item livre no final)
+    int head; // quantas localizacoes foram retiradas?
+             // (index da primeira localizacao ocupada)
+};
 
 /*
 *********************************************************************************************************
-LABIRINTOS - CODIFICA«√O DOS OBJETOS
+LABIRINTOS - CODIFICAÔøΩÔøΩO DOS OBJETOS
 0 - vazio
 1 - parede
 2 - tijolo
@@ -109,13 +135,13 @@ LABIRINTOS - CODIFICA«√O DOS OBJETOS
 5 - inimigo 3
 6 - bomba
 7 - *
-8 - rastro da explos„o
+8 - rastro da explosÔøΩo
 *********************************************************************************************************/
 
 
 /*
-* Labirinto dos obst·culos
-* O acesso ‡ matrix 'LABIRINTO' deve ser feito com posiÁıes y e x invertidas.
+* Labirinto dos obstÔøΩculos
+* O acesso ÔøΩ matrix 'LABIRINTO' deve ser feito com posiÔøΩÔøΩes y e x invertidas.
 * Ex.: LABIRINTO[Y][X];
 */
 int LABIRINTO[13][17] = 
@@ -134,40 +160,40 @@ int LABIRINTO[13][17] =
 ,{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
 };
 
-// Vari·veis declaradas do mÛdulo da GUI
+// Vari√°veis declaradas do m√≥dulo da GUI
 extern HWND hwnd; 
 extern HDC hdc;
 extern MSG Msg;
 
-int BOMBERMAN_POS_X = 1; // PosiÁ„o x do bomberbam na matrix LABIRINTO. 1 = posiÁ„o inicial.
-int BOMBERMAN_POS_Y = 1; // PosiÁ„o y do bomberbam na matrix LABIRINTO. 1 = posiÁ„o inicial.
+int BOMBERMAN_POS_X = 1; // PosiÔøΩÔøΩo x do bomberbam na matrix LABIRINTO. 1 = posiÔøΩÔøΩo inicial.
+int BOMBERMAN_POS_Y = 1; // PosiÔøΩÔøΩo y do bomberbam na matrix LABIRINTO. 1 = posiÔøΩÔøΩo inicial.
 
-int BOMBERMAN_X = 40; // PosiÁ„o x do bomberbam em relaÁ„o ‡ tela, ou seja, a posiÁ„o em px. 40 = posiÁ„o inicial.
-int BOMBERMAN_Y = 40; // PosiÁ„o x do bomberbam em relaÁ„o ‡ tela, ou seja, a posiÁ„o em px. 40 = posiÁ„o inicial.
+int BOMBERMAN_X = 40; // PosiÔøΩÔøΩo x do bomberbam em relaÔøΩÔøΩo ÔøΩ tela, ou seja, a posiÔøΩÔøΩo em px. 40 = posiÔøΩÔøΩo inicial.
+int BOMBERMAN_Y = 40; // PosiÔøΩÔøΩo x do bomberbam em relaÔøΩÔøΩo ÔøΩ tela, ou seja, a posiÔøΩÔøΩo em px. 40 = posiÔøΩÔøΩo inicial.
 
 int WAITING_CLICK = 0; // Flag que bloquei o multi click na mesma tecla.
 int BOMB_ON = 0; // Flag que sinaliza que uma bomba foi plantada.
 int POWER_ON = 1; // Flag que sinaliza se o bomberman adquiriu algum poder. 
 
-int num_bombs = 0; // N˙mero total de bombas.
-int placed_bombs = 0; // N˙mero total de bombas colocadas.
+int num_bombs = 0; // NÔøΩmero total de bombas.
+int placed_bombs = 0; // NÔøΩmero total de bombas colocadas.
 
 int bomb_positionX = 0;
 int bomb_positionY = 0;
-int enemy_count  = 3; // N˙mero de inimigos.
+int enemy_count  = 3; // NÔøΩmero de inimigos.
 
 /*
-* Matrix de bombas. Ser· inicializada na funÁ„o Initiate_Bombs_Matrix(void).
-* A primeira coluna de cada entrada representa a posiÁ„o em X, a segunda em Y e a terceira o tempo de detonaÁ„o.
+* Matrix de bombas. SerÔøΩ inicializada na funÔøΩÔøΩo Initiate_Bombs_Matrix(void).
+* A primeira coluna de cada entrada representa a posiÔøΩÔøΩo em X, a segunda em Y e a terceira o tempo de detonaÔøΩÔøΩo.
 */
 int BOMBS[100][3];
 
 /*
-* Matrix de posiÁ„o dos inimigos.
-* A primeira coluna de cada entrada representa a posiÁ„o em X, a segunda em Y.
+* Matrix de posiÔøΩÔøΩo dos inimigos.
+* A primeira coluna de cada entrada representa a posiÔøΩÔøΩo em X, a segunda em Y.
 */
 int ENEMYS_POS[3][2] = 
-{ { 15 ,  1 }
+{ { 13 ,  1 }
 , {  1 , 11 }
 , { 15 , 11 }
 };
@@ -204,7 +230,7 @@ int ENEMY3_POS_Y = 11;//ENEMYS_POS[2][1];
 /*
 *********************************************************************************************************
 *                                      LOCAL FUNCTION PROTOTYPES
-*									DeclaraÁ„o das Tarefas Criadas
+*									Declara√ß√£o das Tarefas Criadas
 *********************************************************************************************************
 */
 static  void  App_TaskStart (void  *p_arg);
@@ -239,6 +265,17 @@ static void Finish_Game(void);
 
 static void Catch_Bomberman(int , int );
 
+// Construtor da Queue, maxlen tem que se tao grande quando
+// o numero maximo de localizacoes que vao ser colocadas na queue
+static void init(struct Queue * q, int maxlen);
+// insere uma nova localizacao no final da queue
+static void add_to_back(struct Queue * q, struct Location loc);
+// retorna e remove a localizacao mais velha da queue ainda nao removida
+static struct Location remove_from_front(struct Queue * q);
+// olha se a queue ta vazia
+static bool is_empty(struct Queue * q);
+// funcao para realizar bfs
+static int map_search(int rows, int cols, int inimigo, struct Location **predecessor, int *r, int *c);
 
 static OS_SEM player;
 static OS_SEM commands; 
@@ -447,7 +484,7 @@ static void CreateSemaphores(void){
 
 
 	OS_ERR  err_os;
-	// Sem·foros
+	// SemÔøΩforos
 	OSSemCreate(&player,
 		"Player",
 		1,
@@ -482,7 +519,7 @@ static void CreateSemaphores(void){
 
 }
 
-// Task respons·vel por travar os comandos
+// Task responsÔøΩvel por travar os comandos
 static  void  Blocks_Task (void  *p_arg)
 {
 	OS_ERR  err_os;
@@ -567,7 +604,7 @@ static  void  Bg_Task (void  *p_arg)
 }
 
 
-// Task respons·vel por verificar, desenhar e desencadear a acao de explodir bombas.
+// Task responsÔøΩvel por verificar, desenhar e desencadear a acao de explodir bombas.
 static  void  Bombs_Task (int  p_arg[])
 {
 	OS_ERR  err_os;
@@ -647,7 +684,7 @@ static  void  Explosion_Task (int  p_arg[])
 		OSTimeDlyHMSM(0,0,0,50,OS_OPT_TIME_DLY, &err_os);
 	}
 
-	// Remove os rastros de explos„o apÛs passar o tempo definido por explosion_time.
+	// Remove os rastros de explosÔøΩo apÔøΩs passar o tempo definido por explosion_time.
 	for (k = 1; k < 12; k++) 
 	{
 		for (j = 1; j < 16; j++) 
@@ -666,7 +703,25 @@ static  void Enemy_1 (void *p_arg)
 {
 	OS_ERR  err_os;
 	CPU_TS  ts;
-
+	int sucesso;
+	int rows;
+	int cols;
+	int i;
+	int auxC;
+	int auxR;
+	int j;
+	int n;
+	int r = -1;
+	int c = -1;
+	int *pr = &r;
+  	int *pc = &c;
+	struct Location** predecessor = NULL;
+	struct Location sucessor[128];
+	// int ** sucessor 
+	int var_y = ENEMYS_POS[0][1];
+	int var_x = ENEMYS_POS[0][0];
+	cols = 13;
+	rows = 17;
 	while (1) 
 	{		
 
@@ -676,10 +731,61 @@ static  void Enemy_1 (void *p_arg)
 			&ts,
 			&err_os); 
 
+
+		// Cria estrutura para olhar caminho 
+		// Inicializa tudo com (-1, -1)
+		// struct Location **predecessor = (struct Location **)malloc(rows*sizeof(struct Location));
+		predecessor = (struct Location **)malloc(rows*sizeof(struct Location));
+		for(i = 0; i < rows; i++) {
+			predecessor[i] = (struct Location *)malloc(cols*sizeof(struct Location));
+			for(j = 0; j < cols; j++) {
+				predecessor[i][j].row = -1;
+				predecessor[i][j].col = -1;
+			}
+		}
 		//Draw_Enemy(1, img_enemy1, ENEMYS_POS[0][0], ENEMYS_POS[0][1]);
+		sucesso = map_search(cols, rows, 0, predecessor, pr, pc);
+		printf("sucesso = %d\n", sucesso);
+		if(sucesso == 1) {
 
-		Catch_Bomberman(ENEMYS_POS[0][0],ENEMYS_POS[0][1]);
+			printf("c = %d   -   r = %d", c, r);
+			n = 0;
+			//sucessor = (struct Location *)malloc(n*sizeof(struct Location));
+			while(predecessor[r][c].row != -1 || predecessor[r][c].col != -1)
+			{
+				// ENEMYS_POS[0][0] /
+				printf("c = %d   -   r = %d\n", c, r);
+				auxC = c;
+				auxR = r;
+				r = predecessor[auxR][auxC].row;
+				c = predecessor[auxR][auxC].col;
+				sucessor[n].row = r;
+				sucessor[n].col = c;
+				n++;
+			}
+			for(i = n; i >= 0; i--) {
+				if(sucessor[i].row == ENEMYS_POS[0][0] - 1) ENEMYS_POS[0][0]--;
+				if(sucessor[i].row == ENEMYS_POS[0][0] + 1) ENEMYS_POS[0][0]++;
+				if(sucessor[i].col == ENEMYS_POS[0][1] - 1) ENEMYS_POS[0][1]--;
+				if(sucessor[i].col == ENEMYS_POS[0][1] + 1) ENEMYS_POS[0][1]++;
 
+				// if(ENEMYS_POS[0][0]< 7) break; //Inimigo 1, pos X
+				OSTimeDlyHMSM(0,0,0,500,OS_OPT_TIME_DLY, &err_os);
+				// ENEMYS_POS[0][0]--;
+				if (ENEMYS_POS[0][0]== BOMBERMAN_POS_X && ENEMYS_POS[0][1] == BOMBERMAN_POS_Y)
+				{
+					Finish_Game();
+				}
+			}
+		}
+		
+		for(i = 0; i < rows; i++) {
+			
+            free(predecessor[i]);
+        }
+        free(predecessor);
+		//Catch_Bomberman(ENEMYS_POS[0][0],ENEMYS_POS[0][1]);
+		// OSTimeDlyHMSM(0,0,0,50000,OS_OPT_TIME_DLY, &err_os);
 
 	}
 }
@@ -758,7 +864,7 @@ static void Draw_Enemy(int enemy, HBITMAP *img, int x, int y)
 		BLOCK_SIZE, // height
 		2); // index
 
-	LABIRINTO[y][x] = enemy + 2; // O cÛdigo do inimigo È o seu n˙mero +2
+	LABIRINTO[y][x] = enemy + 2; // O cÔøΩdigo do inimigo ÔøΩ o seu nÔøΩmero +2
 }
 
 // Re-desenha o background do jogo.
@@ -778,7 +884,7 @@ static void Draw_Cover(int x, int y)
 		2); // index
 }
 
-// Desenha o player na posiÁ„o atual
+// Desenha o player na posiÔøΩÔøΩo atual
 static void Draw_Player(void)
 {
 	GUI_DrawImage(img_player, // *img
@@ -824,7 +930,7 @@ static void Draw_Bombs()
 		for (i = 0; i < num_bombs; i++) 
 		{
 			printf("Numero de bombas %i \n" , num_bombs);
-			if (BOMBS[i][2] > 0) { // Verifica se est· na hora de explodir a bomba.
+			if (BOMBS[i][2] > 0) { // Verifica se estÔøΩ na hora de explodir a bomba.
 				BOMBS[i][2]--; // Decrementa quanto tempo falta para a bomba explodir.
 				printf("Ta desenhando a bomba %i \n", BOMBS[i][2]);
 
@@ -840,7 +946,7 @@ static void Draw_Bombs()
 				printf(" O que eh BOMBS[i] %i  e o i %i\n ", BOMBS[i],i);
 				Explode(BOMBS[i]);
 
-				// Define como 0 a posiÁ„o da bomba explodida, ou seja, fora do mapa alcanÁ·vel.
+				// Define como 0 a posiÔøΩÔøΩo da bomba explodida, ou seja, fora do mapa alcanÔøΩÔøΩvel.
 				BOMBS[i][0] = 0;
 				BOMBS[i][1] = 0;
 				BOMBS[i][2] = 0;
@@ -852,7 +958,7 @@ static void Draw_Bombs()
 	}
 }
 
-// Desenha de fato as explosıes e mata as tasks dos inimigos, caso sejam atingidos.
+// Desenha de fato as explosÔøΩes e mata as tasks dos inimigos, caso sejam atingidos.
 static void Draw_Explosion(HBITMAP *img, int x, int y)
 {
 	//printf("%d   ", x);
@@ -883,8 +989,8 @@ static void Draw_Explosion(HBITMAP *img, int x, int y)
 	LABIRINTO[y][x] = 8;
 }
 
-// FunÁ„o respons·vel por matar as tasks dos inimigos quando s„o atingidos por explosıes.
-// Quando um inimigo È morto, È importante zerar sua matrix de posiÁıes;
+// FunÔøΩÔøΩo responsÔøΩvel por matar as tasks dos inimigos quando sÔøΩo atingidos por explosÔøΩes.
+// Quando um inimigo ÔøΩ morto, ÔøΩ importante zerar sua matrix de posiÔøΩÔøΩes;
 static void Kill_Enemy(int i)
 {
 	OS_ERR os_err;
@@ -965,10 +1071,10 @@ static void Create_Enemys_Tasks ()
 	APP_TEST_FAULT(err_os, OS_ERR_NONE);
 }
 
-// FunÁ„o que recebe o cÛdigo do movimento ou aÁ„o a ser realizado a o trata, criando um delay tambÈm para funcionar como debounce.
+// FunÔøΩÔøΩo que recebe o cÔøΩdigo do movimento ou aÔøΩÔøΩo a ser realizado a o trata, criando um delay tambÔøΩm para funcionar como debounce.
 static void Make_Move(int opt)
 {
-	/* O acesso ‡ matrix 'LABIRINTO' deve ser feito com posiÁıes y e x invertidas.
+	/* O acesso ÔøΩ matrix 'LABIRINTO' deve ser feito com posiÔøΩÔøΩes y e x invertidas.
 	*  Ex.: LABIRINTO[Y][X];
 	*/
 	OS_ERR  err_os;
@@ -1023,7 +1129,7 @@ static void Make_Move(int opt)
 		}
 	} else if (opt == 5) // PLANT BOMM (SPACE)
 	{
-		if (BOMB_ON == 0) // Caso n„o haja bombas no mapa, È permitido colocar uma.
+		if (BOMB_ON == 0) // Caso nÔøΩo haja bombas no mapa, ÔøΩ permitido colocar uma.
 			Put_Bomb();
 	}
 
@@ -1037,7 +1143,7 @@ static void Make_Move(int opt)
 
 }
 
-// Planta de fato a bomba na posiÁ„o atual do bomberman;
+// Planta de fato a bomba na posiÔøΩÔøΩo atual do bomberman;
 static void Put_Bomb(void) 
 {
 	OS_ERR err_os;
@@ -1059,12 +1165,12 @@ static void Put_Bomb(void)
 	placed_bombs++;
 
 	printf("Posicao bin laden Y %i e C %i \n", BOMBERMAN_POS_Y,BOMBERMAN_POS_X);
-	LABIRINTO[BOMBERMAN_POS_Y][BOMBERMAN_POS_X] = 6; // Define na matrix de posiÁıes a posiÁ„o da bomba
+	LABIRINTO[BOMBERMAN_POS_Y][BOMBERMAN_POS_X] = 6; // Define na matrix de posiÔøΩÔøΩes a posiÔøΩÔøΩo da bomba
 
 
 }
 
-// Cria a task respons·vel pela explos„o da bomba na posiÁ„o x = bomb[0], y = bomb[1]
+// Cria a task responsÔøΩvel pela explosÔøΩo da bomba na posiÔøΩÔøΩo x = bomb[0], y = bomb[1]
 static void Explode(int bomb[2])
 {
 	OS_ERR  err_os;
@@ -1076,7 +1182,7 @@ static void Explode(int bomb[2])
 	OSTaskCreate((OS_TCB     *)&Explosion_TaskTCB,                
 		(CPU_CHAR   *)"Explosion TASK",
 		(OS_TASK_PTR ) Explosion_Task,
-		bomb, // array contendo a posiÁ„o central da explos„o passada para a task Explosion_Task.
+		bomb, // array contendo a posiÔøΩÔøΩo central da explosÔøΩo passada para a task Explosion_Task.
 		(OS_PRIO     ) 5,
 		(CPU_STK    *)&Explosion_TaskStk[0],
 		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE / 10u,
@@ -1091,7 +1197,7 @@ static void Explode(int bomb[2])
 	num_bombs--;
 }
 
-// Inicializa a matrix de bombas com 0 (n„o h· nenhuma no inÌcio do jogo).
+// Inicializa a matrix de bombas com 0 (nÔøΩo hÔøΩ nenhuma no inÔøΩcio do jogo).
 static void Initiate_Bombs_Matrix(void)
 {
 	int i;
@@ -1101,7 +1207,7 @@ static void Initiate_Bombs_Matrix(void)
 	{
 		for (j = 0; j < 3; j++) 
 		{
-			BOMBS[i][j] = 0; // Todas as bombas possÌveis s„o inicializadas na posiÁ„o (0,0) pois est· (fora do mapa jog·vel) .
+			BOMBS[i][j] = 0; // Todas as bombas possÔøΩveis sÔøΩo inicializadas na posiÔøΩÔøΩo (0,0) pois estÔøΩ (fora do mapa jogÔøΩvel) .
 		}
 	}
 }
@@ -1117,7 +1223,7 @@ static void Finish_Game(void)
 		return;
 	}
 
-	// Caso o usu·rio perca o jogo, todas as tasks s„o mortas.
+	// Caso o usuÔøΩrio perca o jogo, todas as tasks sÔøΩo mortas.
 	printf("Game Over");
 	/*OSTaskDel(&Player_TaskTCB, &err_os);
 	APP_TEST_FAULT(err_os, OS_ERR_NONE);*/
@@ -1399,5 +1505,225 @@ static void Catch_Bomberman(int x, int y){
 		//}
 	//}
 //}
+static void init(struct Queue * q, int maxlen) {
+    q->contents = malloc(sizeof(struct Location));
+    q->tail = 0;
+    q->head = 0;
+}
+static void add_to_back(struct Queue * q, struct Location loc) {
+    q->contents[q->tail] = loc;
+    q->tail = q->tail+1;
+}
+static struct Location remove_from_front(struct Queue * q) {
+    q->head = q->head + 1;
+    return (q->contents[q->head - 1]);
+}
+static bool is_empty(struct Queue * q) {
+    return (q->head == q->tail);
+}
 
+static int map_search(int cols, int rows, int inimigo, struct Location **predecessor, int *r, int *c) {
+    int i;
+    int j;
+    int player_row = BOMBERMAN_POS_X;
+    int player_col = BOMBERMAN_POS_Y;
+    // Cria a Queue
+    struct Queue myQueue;
+    init(&myQueue, rows*cols);
+    // Cria a matrix para checar se a celula foi pesquisada
+    // inicializa tudo = 0
+    int **visitado = (int **)malloc(rows*sizeof(int));
+    for(i = 0; i < rows; i++) {
+        visitado[i] = (int *)malloc(cols*sizeof(int));
+        for(j = 0; j < cols; j++) {
+            visitado[i][j] = 0;
+        }
+    }
 
+    
+
+    // Para saber localizacao anterior e atual
+    struct Location current;
+    struct Location previous;
+
+    // Encontra o S e olha se eh o unico S
+    int SCount = 0;
+    for(i = 0; i < rows; i++) {
+        for(j = 0; j < cols; j++) {
+			
+            if(i == ENEMYS_POS[inimigo][0] && j == ENEMYS_POS[inimigo][1]) {
+				printf("i = %d  -  j = %d\n", i, j);
+				printf("i = %d  -  j = %d\n", ENEMYS_POS[inimigo][0], ENEMYS_POS[inimigo][1]);
+                visitado[i][j] = 1;
+                current.row = i;
+                current.col = j;
+                add_to_back(&myQueue, current);
+				SCount = SCount + 1;
+            }
+        }
+    }
+    // Se nao tem apenas uma posicao inicial S, sair
+    if(SCount != 1) {
+        for(i = 0; i < rows; i++) {
+            free(visitado[i]);
+            // free(predecessor[i]);
+        }
+        free(visitado);
+        // free(predecessor);
+        return -1;
+    }
+
+    // Breadth First Search
+    bool foundS = false;
+    while(!(is_empty(&myQueue))) {
+        current = remove_from_front(&myQueue);
+        previous = current;
+		// printf("previous.row = %d\n", previous.row);
+        // Tenta ir pro norte
+        if((current.row - 1 >= 0)
+            && (LABIRINTO[current.col][current.row - 1] != 2)
+            && (LABIRINTO[current.col][current.row - 1] != 1)
+            && (visitado[current.row - 1][current.col] == 0))
+        {
+            // Move para o norte se valido
+            current.row = current.row - 1;
+            // Guarda a casa anterior se for 0
+            if((player_row == current.row) && (player_col == current.col)) {
+				printf("norte\n");
+				
+                predecessor[current.row][current.col].row = previous.row;
+				predecessor[current.row][current.col].col = previous.col;
+                visitado[current.row][current.col] = 1;
+                add_to_back(&myQueue, current);
+                foundS = true;
+				*r = previous.row;
+				*c = previous.col;
+                break;
+            }
+            else if(LABIRINTO[current.col][current.row] == 0) {
+                predecessor[current.row][current.col].row = previous.row;
+				predecessor[current.row][current.col].col = previous.col;
+                visitado[current.row][current.col] = 1;
+                add_to_back(&myQueue, current);
+                current = previous;
+            }
+        }
+        // Tenta ir pro leste
+        if((current.col + 1 < cols)
+            && (LABIRINTO[current.col + 1][current.row] != 2)
+            && (LABIRINTO[current.col + 1][current.row] != 1)
+            && (visitado[current.row][current.col + 1] == 0))
+        {
+            // Move para o leste se valido
+            current.col = current.col + 1;
+            // Guarda a casa anterior se for 0
+            if((player_row == current.row) && (player_col == current.col)) {
+				printf("leste\n");
+
+                predecessor[current.row][current.col].row = previous.row;
+				predecessor[current.row][current.col].col = previous.col;
+                visitado[current.row][current.col] = 1;
+                add_to_back(&myQueue, current);
+                foundS = true;
+				*r = previous.row;
+				*c = previous.col;
+                break;
+            }
+            else if(LABIRINTO[current.col][current.row] == 0) {
+				
+                predecessor[current.row][current.col].row = previous.row;
+				predecessor[current.row][current.col].col = previous.col;
+                visitado[current.row][current.col] = 1;
+                add_to_back(&myQueue, current);
+                current = previous;
+            }
+        }
+        // Tenta ir pro sul
+        if((current.row + 1 < rows)
+            && (LABIRINTO[current.col][current.row + 1] != 2)
+            && (LABIRINTO[current.col][current.row + 1] != 1)
+            && (visitado[current.row + 1][current.col] == 0))
+        {
+            // Move para o sul se valido
+            current.row = current.row + 1;
+            // Para se for jogador
+            if((player_row == current.row) && (player_col == current.col)) {
+				printf("sul\n");
+				
+                predecessor[current.row][current.col].row = previous.row;
+				predecessor[current.row][current.col].col = previous.col;
+                visitado[current.row][current.col] = 1;
+                add_to_back(&myQueue, current);
+                foundS = true;
+				*r = previous.row;
+				*c = previous.col;
+                break;
+            }
+            // Guarda a casa anterior se for 0
+            
+            else if(LABIRINTO[current.col][current.row] == 0) {
+                predecessor[current.row][current.col].row = previous.row;
+				predecessor[current.row][current.col].col = previous.col;
+                visitado[current.row][current.col] = 1;
+                add_to_back(&myQueue, current);
+                current = previous;
+            }
+        }
+        // Tenta ir pro oeste
+        if((current.col - 1 < cols)
+            && (LABIRINTO[current.col - 1][current.row] != 2)
+            && (LABIRINTO[current.col - 1][current.row] != 1)
+            && (visitado[current.row][current.col - 1] == 0))
+        {
+            // Move para o oeste se valido
+            current.col = current.col - 1;
+            // Guarda a casa anterior se for 0
+            if((player_row == current.row) && (player_col == current.col)) {
+				// printf("oeste\n");
+				// printf("current.row = %d\n", current.row);
+				// printf("current.col = %d\n", current.col);
+				// printf("previous.row = %d\n", previous.row);
+				// printf("previous.col = %d\n", previous.col);
+                predecessor[current.row][current.col].row = previous.row;
+				predecessor[current.row][current.col].col = previous.col;
+				*r = previous.row;
+				*c = previous.col;
+				// printf("predecessor[current.row][current.col].row = %d\n", predecessor[current.row][current.col].row);
+				// printf("predecessor[current.row][current.col].col = %d\n", predecessor[current.row][current.col].col);
+                visitado[current.row][current.col] = 1;
+                add_to_back(&myQueue, current);
+                foundS = true;
+                break;
+            }
+            else if(LABIRINTO[current.col][current.row] == 0) {
+                predecessor[current.row][current.col].row = previous.row;
+				predecessor[current.row][current.col].col = previous.col;
+                visitado[current.row][current.col] = 1;
+                add_to_back(&myQueue, current);
+                current = previous;
+            }
+        }
+    }
+    if(SCount != 1) {
+        for(i = 0; i < rows; i++) {
+            free(visitado[i]);
+            // free(predecessor[i]);
+        }
+        free(visitado);
+        // free(predecessor);
+		// printf("RETORNOU 0");
+        return 0;
+    }
+	*r = predecessor[current.row][current.col].row;
+	*c = predecessor[current.row][current.col].col;
+
+	// predecessor[BOMBERMAN_POS_X][BOMBERMAN_POS_Y].row;
+	// for(i = 0; i < rows; i++) {
+	// 		for(j = 0; j < cols; j++) {
+	// 			if()
+	// 			printf("\npredecessor[i][j].row = %d\n",predecessor[i][j].row);
+	// 			printf("predecessor[i][j].col = %d\n",predecessor[i][j].col);
+	// 		}
+	// 	}
+	return 1;
+}   
