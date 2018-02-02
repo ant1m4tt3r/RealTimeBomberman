@@ -50,7 +50,7 @@ typedef enum {false=0, true=1} bool;
 *********************************************************************************************************
 */
 
-int GOD_MODE = 0; // Em desenvolvimento = 1. Produ��o = 0;
+int GOD_MODE = 1; // Em desenvolvimento = 1. Produ��o = 0;
 
 enum GRAPHIC_OBJS{
 	ID_BUTTON_1 = 0,
@@ -469,13 +469,9 @@ static void Create_Enemys_Tasks ()
 		APP_TEST_FAULT(err_os, OS_ERR_NONE);
 	}
 
-
-
-
 }
 
 static void CreateSemaphores(void){
-
 
 	OS_ERR  err_os;
 
@@ -725,13 +721,11 @@ static  void Enemy_Task(void *p_arg)
 	while (estado[i] == VIVO)
 	{		
 
-		//Draw_Enemy(i, img_enemy1, ENEMYS_POS[i][0], ENEMYS_POS[i][1]);
-
 		if (ENEMYS_POS[i][0]== BOMBERMAN_POS_X && ENEMYS_POS[i][1] == BOMBERMAN_POS_Y)
 		{
 			Finish_Game();
 		}
-		//printf("Posicao atual do inimigo %i x%i y%i \n", i,ENEMYS_POS[i][0], ENEMYS_POS[i][0]);
+		
 
 		OSSemPend(&enemy_turn,                            
 			0,                                  
@@ -739,7 +733,7 @@ static  void Enemy_Task(void *p_arg)
 			&ts,
 			&err_os); 
 		if(estado[i] == VIVO)
-			Catch_Bomberman(i,ENEMYS_POS[i][0],ENEMYS_POS[i][1]);//Enemy 1
+			Catch_Bomberman(i,ENEMYS_POS[i][0],ENEMYS_POS[i][1]);
 
 		OSSemPost(&enemy_turn ,OS_OPT_POST_NONE,&err_os);
 
@@ -748,9 +742,6 @@ static  void Enemy_Task(void *p_arg)
 			Finish_Game();
 		}
 
-		/*OSSemPost(&enemys,     
-		OS_OPT_POST_NONE,
-		&err_os);*/
 	}
 	while(estado[i] == MORTO) {}
 }
@@ -799,7 +790,6 @@ static void Draw_Player(void)
 // Desenha os blocos com base na matrix LABIRINTO (pode ser otimizado)
 static void Draw_Blocks(void)
 {
-
 	int i;
 	int j;
 
@@ -851,7 +841,6 @@ static void Draw_Bombs()
 				BOMBS[i][2] = 0;
 			}
 
-			//OSTimeDlyHMSM(0,0,0,30,OS_OPT_TIME_DLY, &err_os);
 		}
 		break;
 	}
@@ -860,15 +849,13 @@ static void Draw_Bombs()
 // Desenha de fato as explos�es e mata as tasks dos inimigos, caso sejam atingidos.
 static void Draw_Explosion(HBITMAP *img, int x, int y)
 {
-	//printf("%d   ", x);
-	//printf("%d\n", y);
+	
 	GUI_DrawImage(img, // *img
 		x * BLOCK_SIZE, // posx
 		y * BLOCK_SIZE, // posy
 		BLOCK_SIZE, // width
 		BLOCK_SIZE, // height
 		3); // index
-	printf("Posicao x %i, y  %i \n",x,y);
 
 	if (LABIRINTO[y][x] == 3) 
 	{
@@ -905,11 +892,8 @@ static void Kill_Enemy(int i)
 	if (enemy_count == 0) {
 		Finish_Game();
 	}
-	//OSTaskDel(&Enemy_Task_TCB[i], &err_os);
 	estado[i] = VIVO;
 }
-
-// Cria as tasks dos 3 inimigos
 
 // Fun��o que recebe o c�digo do movimento ou a��o a ser realizado a o trata, criando um delay tamb�m para funcionar como debounce.
 static void Make_Move(int opt)
@@ -925,9 +909,6 @@ static void Make_Move(int opt)
 		OS_OPT_PEND_BLOCKING,                
 		&ts,
 		&err_os);
-
-	//if (WAITING_CLICK == 1) return; // Flag que bloquei o multiplo clique.
-	//WAITING_CLICK = 1;
 
 	if (opt == 1) // LEFT
 	{
@@ -1073,8 +1054,6 @@ static void Finish_Game(void)
 	}
 	OSTaskDel(&Player_TaskTCB, &err_os);
 	APP_TEST_FAULT(err_os, OS_ERR_NONE);
-	/*OSTaskDel(&Bombs_TaskTCB, &err_os);
-	APP_TEST_FAULT(err_os, OS_ERR_NONE);*/
 	for (i = 0; i < Enemys_number; i++) {
 		OSTaskDel(&Enemy_Task_TCB[i], &err_os);
 	}
@@ -1487,6 +1466,26 @@ static void go_up(int this_enemy){
 
 static void difficulty_level_hard(int this_enemy,int distanceX, int distanceY){
 
+	if((distanceX == -1)&&(directions[1]==1)){
+		go_left(this_enemy);
+		return;
+	}
+
+	if((distanceX == 1)&&(directions[3]==1)){
+		go_right(this_enemy);
+		return;
+	}
+	if((distanceY == -1)&&(directions[2]==1)){
+		go_up(this_enemy);
+		return;
+	}
+
+	if((distanceY == 1)&&(directions[4]==1)){
+		go_down(this_enemy);
+		return;
+	}
+
+	
 	if(abs(distanceX)<=abs(distanceY)){
 		if((distanceX<=0)&&(directions[1] == 1)){
 			go_left(this_enemy);
@@ -1539,7 +1538,6 @@ static void difficulty_level_hard(int this_enemy,int distanceX, int distanceY){
 		}
 	}
 }
-
 
 
 static void difficulty_level_medium(int this_enemy,int distanceX, int distanceY){
@@ -1644,7 +1642,6 @@ static void difficulty_level_medium(int this_enemy,int distanceX, int distanceY)
 }
 
 
-
 static void difficulty_level_easy(int this_enemy,int distanceX, int distanceY){
 
 	if(distanceX<=0){
@@ -1739,6 +1736,7 @@ static void difficulty_level_easy(int this_enemy,int distanceX, int distanceY){
 	}
 
 }
+
 
 
 
