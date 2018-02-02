@@ -1281,15 +1281,19 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 
 			if(directions[1] == 1){
 				go_left(this_enemy);
+				return;
 			}else{	
-				if(directions[2] == 1){
+				if((distanceY<=0)&&(directions[2] == 1)){
 					go_up(this_enemy);
+					return;
 				}else{	
 					if(directions[4] == 1){
 						go_down(this_enemy);
+						return;
 					}else{
 						if(directions[3] == 1){
 							go_right(this_enemy);
+							return;
 						}
 					}
 
@@ -1300,15 +1304,19 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 
 				if(directions[3] == 1){
 					go_right(this_enemy);
+					return;
 				}else{	
-					if(directions[2] == 1){
+					if((distanceY<=0)&&(directions[2] == 1)){
 						go_up(this_enemy);
+						return;
 					}else{	
 						if(directions[4] == 1){
 							go_down(this_enemy);
+							return;
 						}else{
 							if(directions[1] == 1){
 								go_left(this_enemy);
+								return;
 							}
 						}
 					}
@@ -1321,15 +1329,19 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 
 			if(directions[2] == 1){
 				go_up(this_enemy);
+				return;
 			}else{	
-				if(directions[1] == 1){
+				if((distanceX<=0)&&(directions[1] == 1)){
 					go_left(this_enemy);
+					return;
 				}else{	
 					if(directions[3] == 1){
 						go_right(this_enemy);
+						return;
 					}else{
 						if(directions[4] == 1){
 							go_down(this_enemy);
+							return;
 						}
 					}
 				}
@@ -1338,15 +1350,19 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 			if(distanceY>0){
 				if(directions[4] == 1){
 					go_down(this_enemy);
+					return;
 				}else{	
-					if(directions[1] == 1){
+					if((distanceX<=0)&&(directions[1] == 1)){
 						go_left(this_enemy);
+						return;
 					}else{	
 						if(directions[3] == 1){
 							go_right(this_enemy);
+							return;
 						}else{
 							if(directions[2] == 1){
 								go_up(this_enemy);
+								return;
 							}
 						}
 
