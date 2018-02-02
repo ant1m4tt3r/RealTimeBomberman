@@ -31,7 +31,7 @@
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
 #define SIZE_TIJOLO_DEFAULT 40
-#define Enemy_delay 200
+#define Enemy_delay 100
 #define Player_delay 20
 #define BackGround_delay 100
 #define Enemys_number 3
