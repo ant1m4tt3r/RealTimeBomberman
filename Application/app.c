@@ -714,7 +714,7 @@ static  void Enemy_Task(void *p_arg)
 	OS_ERR  err_os;
 	CPU_TS  ts;
 	int i = (int)p_arg;
-	
+
 
 	OSSemPend(&enemys,                            
 		0,                                  
@@ -896,7 +896,7 @@ static void Kill_Enemy(int i)
 	CPU_TS ts;
 
 
-	
+
 	ENEMYS_POS[i][0] = 0;
 	ENEMYS_POS[i][1] = 0;
 
@@ -1252,7 +1252,7 @@ LRESULT CALLBACK HandleGUIEvents(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 //Funcao que ira calcular a melhor trajetoria para alcancar o bomberman
 
 static void Catch_Bomberman(int this_enemy ,int x, int y){
-	
+
 	OS_ERR err_os;
 	CPU_TS ts;
 
@@ -1262,7 +1262,7 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 	int randomY; 
 	int distanceY;
 	if (estado[this_enemy] == MORTO) return;
-	
+
 	OSSemPend(&commands,0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 	randomX = BOMBERMAN_POS_X;//rand()%15;//
@@ -1276,31 +1276,11 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 
 	OSSemPost(&enemy[this_enemy] ,OS_OPT_POST_NONE,&err_os); 
 
-	if(distanceX<=0){
+	if(abs(distanceX)<=abs(distanceY)){
+		if(distanceX<=0){
 
-		if(directions[1] == 1){
-			go_left(this_enemy);
-		}else{	
-			if(directions[2] == 1){
-				go_up(this_enemy);
-			}else{	
-				if(directions[4] == 1){
-					go_down(this_enemy);
-				}else{
-					if(directions[3] == 1){
-						go_right(this_enemy);
-					}else{	
-						return;
-					}
-				}
-
-			}
-		}
-	}else{
-		if(distanceX>0){
-
-			if(directions[3] == 1){
-				go_right(this_enemy);
+			if(directions[1] == 1){
+				go_left(this_enemy);
 			}else{	
 				if(directions[2] == 1){
 					go_up(this_enemy);
@@ -1308,43 +1288,39 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 					if(directions[4] == 1){
 						go_down(this_enemy);
 					}else{
-						if(directions[1] == 1){
-							go_left(this_enemy);
-						}else{	
-							return;
+						if(directions[3] == 1){
+							go_right(this_enemy);
 						}
-
 					}
+
 				}
 			}
-		}else{	
-			return;
-		}
-	}
+		}else{
+			if(distanceX>0){
 
-	if(distanceY<=0){
-
-		if(directions[2] == 1){
-			go_up(this_enemy);
-		}else{	
-			if(directions[1] == 1){
-				go_left(this_enemy);
-			}else{	
 				if(directions[3] == 1){
 					go_right(this_enemy);
-				}else{
-					if(directions[4] == 1){
-						go_down(this_enemy);
-					}else{
-						return;
+				}else{	
+					if(directions[2] == 1){
+						go_up(this_enemy);
+					}else{	
+						if(directions[4] == 1){
+							go_down(this_enemy);
+						}else{
+							if(directions[1] == 1){
+								go_left(this_enemy);
+							}
+						}
 					}
 				}
 			}
 		}
 	}else{
-		if(distanceY>0){
-			if(directions[4] == 1){
-				go_down(this_enemy);
+
+		if(distanceY<=0){
+
+			if(directions[2] == 1){
+				go_up(this_enemy);
 			}else{	
 				if(directions[1] == 1){
 					go_left(this_enemy);
@@ -1352,20 +1328,38 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 					if(directions[3] == 1){
 						go_right(this_enemy);
 					}else{
-						if(directions[2] == 1){
-							go_up(this_enemy);
-						}else{
-							return;
+						if(directions[4] == 1){
+							go_down(this_enemy);
 						}
+					}
+				}
+			}
+		}else{
+			if(distanceY>0){
+				if(directions[4] == 1){
+					go_down(this_enemy);
+				}else{	
+					if(directions[1] == 1){
+						go_left(this_enemy);
+					}else{	
+						if(directions[3] == 1){
+							go_right(this_enemy);
+						}else{
+							if(directions[2] == 1){
+								go_up(this_enemy);
+							}
+						}
+
 					}
 
 				}
-
 			}
-		}else{	
-			return;
 		}
 	}
+
+
+
+
 
 }
 
@@ -1429,10 +1423,10 @@ static void go_right(int this_enemy){
 	int y = ENEMYS_POS[this_enemy][1];
 
 	OSSemPend(&commands,                            
-	0,                                  
-	OS_OPT_PEND_BLOCKING,                
-	&ts,
-	&err_os);
+		0,                                  
+		OS_OPT_PEND_BLOCKING,                
+		&ts,
+		&err_os);
 
 	if (estado[this_enemy] == MORTO) return;
 	if (x > 0 && y > 0) LABIRINTO[y][x] = 0;
@@ -1448,8 +1442,8 @@ static void go_right(int this_enemy){
 	}
 
 	OSSemPost(&commands,     
-	OS_OPT_POST_NONE,
-	&err_os);
+		OS_OPT_POST_NONE,
+		&err_os);
 
 	OSTimeDlyHMSM(0,0,0,Enemy_delay,OS_OPT_TIME_DLY, &err_os);
 
@@ -1461,15 +1455,15 @@ static void go_down(int this_enemy){
 
 	OS_ERR err_os;
 	CPU_TS ts;
-	
+
 	int x = ENEMYS_POS[this_enemy][0];
 	int y = ENEMYS_POS[this_enemy][1];
 
 	OSSemPend(&commands,                            
-	0,                                  
-	OS_OPT_PEND_BLOCKING,                
-	&ts,
-	&err_os);
+		0,                                  
+		OS_OPT_PEND_BLOCKING,                
+		&ts,
+		&err_os);
 
 	if (estado[this_enemy] == MORTO) return;
 	if(x > 0 && y > 0) LABIRINTO[y][x] = 0;
@@ -1485,8 +1479,8 @@ static void go_down(int this_enemy){
 	}
 
 	OSSemPost(&commands,     
-	OS_OPT_POST_NONE,
-	&err_os);
+		OS_OPT_POST_NONE,
+		&err_os);
 
 	OSTimeDlyHMSM(0,0,0,Enemy_delay,OS_OPT_TIME_DLY, &err_os);
 
@@ -1503,11 +1497,11 @@ static void go_left(int this_enemy){
 	int y = ENEMYS_POS[this_enemy][1];
 
 	OSSemPend(&commands,                            
-	0,                                  
-	OS_OPT_PEND_BLOCKING,                
-	&ts,
-	&err_os);
-	
+		0,                                  
+		OS_OPT_PEND_BLOCKING,                
+		&ts,
+		&err_os);
+
 	if (estado[this_enemy] == MORTO) return;
 	if (x > 0 && y > 0) LABIRINTO[y][x] = 0;
 	OSSemPend(&enemy[this_enemy],0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
@@ -1523,8 +1517,8 @@ static void go_left(int this_enemy){
 	}
 
 	OSSemPost(&commands,     
-	OS_OPT_POST_NONE,
-	&err_os);
+		OS_OPT_POST_NONE,
+		&err_os);
 
 	OSTimeDlyHMSM(0,0,0,Enemy_delay,OS_OPT_TIME_DLY, &err_os);
 
@@ -1539,10 +1533,10 @@ static void go_up(int this_enemy){
 	int y = ENEMYS_POS[this_enemy][1];
 
 	OSSemPend(&commands,                            
-	0,                                  
-	OS_OPT_PEND_BLOCKING,                
-	&ts,
-	&err_os);
+		0,                                  
+		OS_OPT_PEND_BLOCKING,                
+		&ts,
+		&err_os);
 
 	if (estado[this_enemy] == MORTO) return;
 	if (x > 0 && y > 0) LABIRINTO[y][x] = 0;
@@ -1558,9 +1552,9 @@ static void go_up(int this_enemy){
 	}
 
 	OSSemPost(&commands,     
-	OS_OPT_POST_NONE,
-	&err_os);
-	
+		OS_OPT_POST_NONE,
+		&err_os);
+
 
 	OSTimeDlyHMSM(0,0,0,Enemy_delay,OS_OPT_TIME_DLY, &err_os);
 
