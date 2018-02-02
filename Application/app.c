@@ -37,6 +37,7 @@
 #define Enemys_number 3
 #define VIVO 1
 #define MORTO 0
+#define GOD_MODE  0 // Em desenvolvimento = 1. Produ��o = 0;
 
 //2- Hard, 1 - Medium, 0 - Easy
 #define game_mode 2
@@ -50,7 +51,7 @@ typedef enum {false=0, true=1} bool;
 *********************************************************************************************************
 */
 
-int GOD_MODE = 1; // Em desenvolvimento = 1. Produ��o = 0;
+
 
 enum GRAPHIC_OBJS{
 	ID_BUTTON_1 = 0,
@@ -95,15 +96,21 @@ static  CPU_STK  Bg_TaskStk[APP_TASK_START_STK_SIZE];
 
 static  OS_TCB  Blocks_TaskTCB;
 static  CPU_STK  Blocks_TaskStk[APP_TASK_START_STK_SIZE];
+
+static  OS_TCB  GameOver_TaskTCB;
+static  CPU_STK GameOver_TaskStk[APP_TASK_START_STK_SIZE];
+
+static OS_TCB GameStart_TaskTCB;
+static CPU_STK GameStart_TaskStk[APP_TASK_START_STK_SIZE];
+
 /*
 *********************************************************************************************************
 *                                       LOCAL GLOBAL VARIABLES
 *********************************************************************************************************
 */
 
-
 // HBITMAP * img;
-HBITMAP *img_cover, *img_back, *img_block,*img_bomb, *img_player, *img_bomberman, *img_bomberman_reverse, *img_explosion_center,*img_explosion_horizontal, *img_explosion_vertical, *img_fogo_vertical, *img_enemy1, *img_enemy2, *img_enemy3;
+HBITMAP *img_cover, *img_back, *img_initial ,*img_gameover ,*img_block,*img_bomb, *img_player, *img_bomberman, *img_bomberman_reverse, *img_explosion_center,*img_explosion_horizontal, *img_explosion_vertical, *img_fogo_vertical, *img_enemy1, *img_enemy2, *img_enemy3;
 
 
 /*
@@ -155,7 +162,7 @@ int BOMBERMAN_Y = 40; // Posi��o x do bomberbam em rela��o � tela, ou 
 
 int WAITING_CLICK = 0; // Flag que bloquei o multi click na mesma tecla.
 int BOMB_ON = 0; // Flag que sinaliza que uma bomba foi plantada.
-int POWER_ON = 1; // Flag que sinaliza se o bomberman adquiriu algum poder. 
+int POWER_ON = 0; // Flag que sinaliza se o bomberman adquiriu algum poder. 
 
 int num_bombs = 0; // N�mero total de bombas.
 int placed_bombs = 0; // N�mero total de bombas colocadas.
@@ -163,6 +170,8 @@ int placed_bombs = 0; // N�mero total de bombas colocadas.
 int bomb_positionX = 0;
 int bomb_positionY = 0;
 int enemy_count  = 3; // N�mero de inimigos.
+
+int start = 0;
 
 static int directions[4];
 
@@ -234,6 +243,10 @@ static void Put_Bomb(void);
 static void Explode(int[]);
 static void Verifications(void);
 static void Finish_Game(void);
+static void create_gameover(void);
+static void GameOver_Task(void );
+static void create_gamestart(void);
+static void GameStart_Task(void);
 
 static void Catch_Bomberman(int , int , int );
 static bool find_wall_blocks(int , int);
@@ -255,6 +268,7 @@ static OS_SEM enemys;//Por que esse semaforo?
 static OS_SEM bombSem;
 static OS_SEM enemy[3];
 static OS_SEM enemy_turn; //Turno de cada oponente
+static OS_SEM start_game;
 
 
 LRESULT CALLBACK HandleGUIEvents(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -306,7 +320,6 @@ int  main (void)
 		(OS_ERR     *)&err_os);
 	APP_TEST_FAULT(err_os, OS_ERR_NONE);
 
-
 	OSStart(&err_os);                                         /* Inicia o funcionamento do escalonador. */
 	APP_TEST_FAULT(err_os, OS_ERR_NONE);
 
@@ -329,6 +342,8 @@ static void Criar_Figuras(void)
 	img_explosion_horizontal = GUI_CreateImage("exphorizont.bmp", BLOCK_SIZE, BLOCK_SIZE);
 	img_explosion_vertical = GUI_CreateImage("expvertical.bmp", BLOCK_SIZE, BLOCK_SIZE);
 	img_player = img_bomberman;
+	img_gameover = GUI_CreateImage("gameover.bmp", BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGTH);
+	img_initial = GUI_CreateImage("initial.bmp", BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGTH);
 }
 
 /*
@@ -353,6 +368,11 @@ static  void  App_TaskStart (void  *p_arg)
 	int erroN;
 	OS_ERR  err_os;
 
+
+	Criar_Figuras();
+
+	CreateSemaphores();
+
 	erroN = GUI_Init(HandleGUIEvents);
 
 	if( erroN < 0 ) 
@@ -360,8 +380,16 @@ static  void  App_TaskStart (void  *p_arg)
 		printf("\n Erro ao iniciar a Gui (%d)",erroN);
 	}
 
-	Criar_Figuras();
-	CreateSemaphores();
+	create_gamestart();
+
+
+	OSTimeDlyHMSM(0,0,0,3000,OS_OPT_TIME_DLY, &err_os);
+	//OSSemPend(&start_game,0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
+
+	OSTaskDel(&GameStart_TaskTCB, &err_os);
+
+	printf("Task Morta");
+
 
 	OSTaskCreate((OS_TCB     *)&Player_TaskTCB,                
 		(CPU_CHAR   *)"PLAYER TASK",
@@ -427,9 +455,9 @@ static  void  App_TaskStart (void  *p_arg)
 
 	Create_Enemys_Tasks();
 
-	//Draw_Background();
 
-	// Loop de mensagens para interface grafica
+
+
 	while (1)
 	{
 
@@ -441,8 +469,11 @@ static  void  App_TaskStart (void  *p_arg)
 		OSTimeDlyHMSM(0,0,0,50,OS_OPT_TIME_DLY, &err_os); //Mudar o valor 50 pode dificultar o jogo, o que pode ser um mod da fase
 
 	}
-
 	printf("\n fim do loop de msg");
+	//Draw_Background();
+
+	// Loop de mensagens para interface grafica
+
 
 }
 
@@ -518,6 +549,12 @@ static void CreateSemaphores(void){
 		OSSemCreate(&enemy[i],
 			"Mutex de cada inimigo",
 			1,
+			&err_os);
+		APP_TEST_FAULT(err_os, OS_ERR_NONE);
+
+		OSSemCreate(&start_game,
+			"Inicia jogo",
+			0,
 			&err_os);
 		APP_TEST_FAULT(err_os, OS_ERR_NONE);
 	}
@@ -725,7 +762,7 @@ static  void Enemy_Task(void *p_arg)
 		{
 			Finish_Game();
 		}
-		
+
 
 		OSSemPend(&enemy_turn,                            
 			0,                                  
@@ -849,7 +886,7 @@ static void Draw_Bombs()
 // Desenha de fato as explos�es e mata as tasks dos inimigos, caso sejam atingidos.
 static void Draw_Explosion(HBITMAP *img, int x, int y)
 {
-	
+
 	GUI_DrawImage(img, // *img
 		x * BLOCK_SIZE, // posx
 		y * BLOCK_SIZE, // posy
@@ -1048,6 +1085,11 @@ static void Finish_Game(void)
 	if (enemy_count > 0) {
 		// Caso o usu�rio perca o jogo, todas as tasks s�o mortas.
 		printf("Game Over");
+		OSTaskDel(&Bg_TaskTCB, &err_os);
+
+		create_gameover();
+
+
 	}
 	else {
 		printf("VOCE GANHOU CHAMPS!");
@@ -1057,6 +1099,7 @@ static void Finish_Game(void)
 	for (i = 0; i < Enemys_number; i++) {
 		OSTaskDel(&Enemy_Task_TCB[i], &err_os);
 	}
+
 	OSTaskDel(&AppStartTaskTCB, &err_os);
 	APP_TEST_FAULT(err_os, OS_ERR_NONE);
 
@@ -1091,6 +1134,15 @@ LRESULT CALLBACK HandleGUIEvents(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 		case VK_F2:
 			// Insert code here to process the F2 key
 			// ...
+
+			OSSemPost(&start_game ,OS_OPT_POST_NONE,&err_os);
+			start = 1;
+			/*if(VK_F2 == wParam) {
+			OSTimeDlyHMSM(0,0,0,50,OS_OPT_TIME_DLY, &err_os);
+			if(VK_F2 == wParam) {
+
+			}*/
+
 			break;
 
 		case VK_LEFT:
@@ -1485,7 +1537,7 @@ static void difficulty_level_hard(int this_enemy,int distanceX, int distanceY){
 		return;
 	}
 
-	
+
 	if(abs(distanceX)<=abs(distanceY)){
 		if((distanceX<=0)&&(directions[1] == 1)){
 			go_left(this_enemy);
@@ -1737,6 +1789,58 @@ static void difficulty_level_easy(int this_enemy,int distanceX, int distanceY){
 
 }
 
+static void create_gameover(void){
+
+	OS_ERR err_os;
+
+	OSTaskCreate((OS_TCB     *)&GameOver_TaskTCB,                
+		(CPU_CHAR   *)"GameOver TASK",
+		(OS_TASK_PTR ) GameOver_Task,
+		(void       *) 0,
+		(OS_PRIO     ) 8,
+		(CPU_STK    *)&GameOver_TaskStk[0],
+		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE / 10u,
+		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE,
+		(OS_MSG_QTY  ) 0u,
+		(OS_TICK     ) 0u,
+		(void       *) 0,
+		(OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+		(OS_ERR     *)&err_os);
+	APP_TEST_FAULT(err_os, OS_ERR_NONE);
+}
+
+static void GameOver_Task(void *p_arg){
+
+	GUI_DrawImage(img_gameover, 4, 0, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGTH, 0); // Coloca o Fundo com offset proposital de 4px em x.
+}
+
+static void create_gamestart(void){
+
+	OS_ERR err_os;
+
+	printf("Task Criada \n");
+	OSTaskCreate((OS_TCB     *)&GameStart_TaskTCB,                
+		(CPU_CHAR   *)"GameStart TASK",
+		(OS_TASK_PTR ) GameStart_Task,
+		(void       *) 0,
+		(OS_PRIO     ) 3,
+		(CPU_STK    *)&GameStart_TaskStk[0],
+		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE / 10u,
+		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE,
+		(OS_MSG_QTY  ) 0u,
+		(OS_TICK     ) 0u,
+		(void       *) 0,
+		(OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+		(OS_ERR     *)&err_os);
+	APP_TEST_FAULT(err_os, OS_ERR_NONE);
+
+}
+
+static void GameStart_Task(void *p_arg){
+
+	GUI_DrawImage(img_initial, 4, 0, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGTH, 0); // Coloca o Fundo com offset proposital de 4px em x.
+
+}
 
 
 
