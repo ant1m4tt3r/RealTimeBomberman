@@ -38,6 +38,9 @@
 #define VIVO 1
 #define MORTO 0
 
+//2- Hard, 1 - Medium, 0 - Easy
+#define game_mode 2
+
 
 typedef enum {false=0, true=1} bool;
 
@@ -240,6 +243,11 @@ static void go_down(int );
 static void go_up(int );
 static void go_left(int);
 
+
+static void difficulty_level_hard(int ,int , int );
+static void difficulty_level_medium(int ,int , int );
+static void difficulty_level_easy(int ,int , int );
+
 static OS_SEM player;
 static OS_SEM commands; 
 static OS_SEM blocks;
@@ -247,7 +255,7 @@ static OS_SEM enemys;//Por que esse semaforo?
 static OS_SEM bombSem;
 static OS_SEM enemy[3];
 static OS_SEM enemy_turn; //Turno de cada oponente
-static OS_SEM enemy_killed[3];
+
 
 LRESULT CALLBACK HandleGUIEvents(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -516,15 +524,7 @@ static void CreateSemaphores(void){
 			1,
 			&err_os);
 		APP_TEST_FAULT(err_os, OS_ERR_NONE);
-
-		OSSemCreate(&enemy_killed[i],
-			"Mutex de cada inimigo",
-			1,
-			&err_os);
-		APP_TEST_FAULT(err_os, OS_ERR_NONE);
 	}
-
-
 }
 
 // Task respons�vel por travar os comandos
@@ -1276,106 +1276,17 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 
 	OSSemPost(&enemy[this_enemy] ,OS_OPT_POST_NONE,&err_os); 
 
-	if(abs(distanceX)<=abs(distanceY)){
-		if(distanceX<=0){
-
-			if(directions[1] == 1){
-				go_left(this_enemy);
-				return;
-			}else{	
-				if((distanceY<=0)&&(directions[2] == 1)){
-					go_up(this_enemy);
-					return;
-				}else{	
-					if(directions[4] == 1){
-						go_down(this_enemy);
-						return;
-					}else{
-						if(directions[3] == 1){
-							go_right(this_enemy);
-							return;
-						}
-					}
-
-				}
-			}
-		}else{
-			if(distanceX>0){
-
-				if(directions[3] == 1){
-					go_right(this_enemy);
-					return;
-				}else{	
-					if((distanceY<=0)&&(directions[2] == 1)){
-						go_up(this_enemy);
-						return;
-					}else{	
-						if(directions[4] == 1){
-							go_down(this_enemy);
-							return;
-						}else{
-							if(directions[1] == 1){
-								go_left(this_enemy);
-								return;
-							}
-						}
-					}
-				}
-			}
-		}
+	if(game_mode == 2){
+		difficulty_level_hard(this_enemy,distanceX,distanceY);
 	}else{
-
-		if(distanceY<=0){
-
-			if(directions[2] == 1){
-				go_up(this_enemy);
-				return;
-			}else{	
-				if((distanceX<=0)&&(directions[1] == 1)){
-					go_left(this_enemy);
-					return;
-				}else{	
-					if(directions[3] == 1){
-						go_right(this_enemy);
-						return;
-					}else{
-						if(directions[4] == 1){
-							go_down(this_enemy);
-							return;
-						}
-					}
-				}
-			}
+		if(game_mode == 1){
+			difficulty_level_medium(this_enemy,distanceX,distanceY);
 		}else{
-			if(distanceY>0){
-				if(directions[4] == 1){
-					go_down(this_enemy);
-					return;
-				}else{	
-					if((distanceX<=0)&&(directions[1] == 1)){
-						go_left(this_enemy);
-						return;
-					}else{	
-						if(directions[3] == 1){
-							go_right(this_enemy);
-							return;
-						}else{
-							if(directions[2] == 1){
-								go_up(this_enemy);
-								return;
-							}
-						}
-
-					}
-
-				}
-			}
+			difficulty_level_easy(this_enemy,distanceX,distanceY);
 		}
+
+
 	}
-
-
-
-
 
 }
 
@@ -1386,13 +1297,9 @@ bool find_wall_blocks(int i, int j){
 
 		return true;
 
-	}else
-	{
-
+	}else{
 		return false;
-
 	}
-
 
 }
 
@@ -1577,3 +1484,265 @@ static void go_up(int this_enemy){
 
 
 }
+
+static void difficulty_level_hard(int this_enemy,int distanceX, int distanceY){
+
+	if(abs(distanceX)<=abs(distanceY)){
+		if((distanceX<=0)&&(directions[1] == 1)){
+			go_left(this_enemy);
+			return;
+		}else{	
+			if((distanceX>0)&&(directions[3] == 1)){
+				go_right(this_enemy);
+				return;
+			}else{
+				if((distanceY<=0)&&(directions[2] == 1)){
+					go_up(this_enemy);
+					return;
+				}else{	
+					if(directions[4] == 1){
+						go_down(this_enemy);
+						return;
+					}else{
+						if(directions[3] == 1){
+							go_right(this_enemy);
+							return;
+						}
+					}
+				}
+			}
+		}
+	}else{
+		if((distanceY<=0)&&(directions[2] == 1)){
+			go_up(this_enemy);
+			return;
+		}else{	
+			if((distanceY>0)&&(directions[4] == 1)){
+				go_down(this_enemy);
+				return;
+			}else{
+				if((distanceX<=0)&&(directions[1] == 1)){
+					go_left(this_enemy);
+					return;
+				}else{	
+					if(directions[3] == 1){
+						go_right(this_enemy);
+						return;
+					}else{
+						if(directions[4] == 1){
+							go_down(this_enemy);
+							return;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+
+
+static void difficulty_level_medium(int this_enemy,int distanceX, int distanceY){
+
+	if(abs(distanceX)<=abs(distanceY)){
+		if(distanceX<=0){
+			if(directions[1] == 1){
+				go_left(this_enemy);
+				return;
+			}else{	
+				if((distanceY<=0)&&(directions[2] == 1)){
+					go_up(this_enemy);
+					return;
+				}else{	
+					if(directions[4] == 1){
+						go_down(this_enemy);
+						return;
+					}else{
+						if(directions[3] == 1){
+							go_right(this_enemy);
+							return;
+						}
+					}
+
+				}
+			}
+		}else{
+			if(distanceX>0){
+
+				if(directions[3] == 1){
+					go_right(this_enemy);
+					return;
+				}else{	
+					if((distanceY<=0)&&(directions[2] == 1)){
+						go_up(this_enemy);
+						return;
+					}else{	
+						if(directions[4] == 1){
+							go_down(this_enemy);
+							return;
+						}else{
+							if(directions[1] == 1){
+								go_left(this_enemy);
+								return;
+							}
+						}
+					}
+				}
+			}
+		}
+	}else{
+
+		if(distanceY<=0){
+
+			if(directions[2] == 1){
+				go_up(this_enemy);
+				return;
+			}else{	
+				if((distanceX<=0)&&(directions[1] == 1)){
+					go_left(this_enemy);
+					return;
+				}else{	
+					if(directions[3] == 1){
+						go_right(this_enemy);
+						return;
+					}else{
+						if(directions[4] == 1){
+							go_down(this_enemy);
+							return;
+						}
+					}
+				}
+			}
+		}else{
+			if(distanceY>0){
+				if(directions[4] == 1){
+					go_down(this_enemy);
+					return;
+				}else{	
+					if((distanceX<=0)&&(directions[1] == 1)){
+						go_left(this_enemy);
+						return;
+					}else{	
+						if(directions[3] == 1){
+							go_right(this_enemy);
+							return;
+						}else{
+							if(directions[2] == 1){
+								go_up(this_enemy);
+								return;
+							}
+						}
+
+					}
+
+				}
+			}
+		}
+	}
+
+
+}
+
+
+
+static void difficulty_level_easy(int this_enemy,int distanceX, int distanceY){
+
+	if(distanceX<=0){
+
+		if(directions[1] == 1){
+			go_left(this_enemy);
+		}else{	
+			if(directions[2] == 1){
+				go_up(this_enemy);
+			}else{	
+				if(directions[4] == 1){
+					go_down(this_enemy);
+				}else{
+					if(directions[3] == 1){
+						go_right(this_enemy);
+					}else{	
+						return;
+					}
+				}
+
+			}
+		}
+	}else{
+		if(distanceX>0){
+
+			if(directions[3] == 1){
+				go_right(this_enemy);
+			}else{	
+				if(directions[2] == 1){
+					go_up(this_enemy);
+				}else{	
+					if(directions[4] == 1){
+						go_down(this_enemy);
+					}else{
+						if(directions[1] == 1){
+							go_left(this_enemy);
+						}else{	
+							return;
+						}
+
+					}
+				}
+			}
+		}else{	
+			return;
+		}
+	}
+
+	if(distanceY<=0){
+
+		if(directions[2] == 1){
+			go_up(this_enemy);
+		}else{	
+			if(directions[1] == 1){
+				go_left(this_enemy);
+			}else{	
+				if(directions[3] == 1){
+					go_right(this_enemy);
+				}else{
+					if(directions[4] == 1){
+						go_down(this_enemy);
+					}else{
+						return;
+					}
+				}
+			}
+		}
+	}else{
+		if(distanceY>0){
+			if(directions[4] == 1){
+				go_down(this_enemy);
+			}else{	
+				if(directions[1] == 1){
+					go_left(this_enemy);
+				}else{	
+					if(directions[3] == 1){
+						go_right(this_enemy);
+					}else{
+						if(directions[2] == 1){
+							go_up(this_enemy);
+						}else{
+							return;
+						}
+					}
+
+				}
+
+			}
+		}else{	
+			return;
+		}
+	}
+
+}
+
+
+
+
+
+
+
