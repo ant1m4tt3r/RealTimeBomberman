@@ -45,7 +45,8 @@
 //Se estiver confuso é 1
 #define confused 0
 
-typedef enum {false=0, true=1} bool;
+typedef enum {false=0, 
+	true=1} bool;
 
 /*
 *********************************************************************************************************
@@ -1562,22 +1563,22 @@ static void go_up(int this_enemy){
 static void difficulty_level_veryhard(int this_enemy,int distanceX, int distanceY){
 
 	/*if((distanceX == -1)&&(directions[1]==1)){
-		go_left(this_enemy);
-		return;
+	go_left(this_enemy);
+	return;
 	}
 
 	if((distanceX == 1)&&(directions[3]==1)){
-		go_right(this_enemy);
-		return;
+	go_right(this_enemy);
+	return;
 	}
 	if((distanceY == -1)&&(directions[2]==1)){
-		go_up(this_enemy);
-		return;
+	go_up(this_enemy);
+	return;
 	}
 
 	if((distanceY == 1)&&(directions[4]==1)){
-		go_down(this_enemy);
-		return;
+	go_down(this_enemy);
+	return;
 	}*/
 
 
@@ -1607,8 +1608,12 @@ static void difficulty_level_veryhard(int this_enemy,int distanceX, int distance
 								go_left(this_enemy);
 								return;
 							}else{
-								go_right(this_enemy);
-								return;
+								if(directions[3] == 1){
+									go_right(this_enemy);
+									return;
+								}
+
+
 							}
 						}
 
@@ -1641,9 +1646,13 @@ static void difficulty_level_veryhard(int this_enemy,int distanceX, int distance
 							if(directions[2] == 1){
 								go_up(this_enemy);
 								return;
-							}else{	
-								go_down(this_enemy);
-								return;
+							}else{
+								if(directions[4] == 1){
+									go_down(this_enemy);
+									return;
+								}
+
+
 							}
 						}
 					}
