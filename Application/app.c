@@ -40,7 +40,7 @@
 #define GOD_MODE  0 // Em desenvolvimento = 1. Produ��o = 0;
 
 //2- Hard, 1 - Medium, 0 - Easy
-#define game_mode 4
+#define game_mode 0
 
 //Se estiver confuso é 1
 #define confused 0
@@ -106,6 +106,9 @@ static  CPU_STK GameOver_TaskStk[APP_TASK_START_STK_SIZE];
 static OS_TCB GameStart_TaskTCB;
 static CPU_STK GameStart_TaskStk[APP_TASK_START_STK_SIZE];
 
+static OS_TCB GameWon_TaskTCB;
+static CPU_STK GameWon_TaskStk[APP_TASK_START_STK_SIZE];
+
 /*
 *********************************************************************************************************
 *                                       LOCAL GLOBAL VARIABLES
@@ -113,7 +116,7 @@ static CPU_STK GameStart_TaskStk[APP_TASK_START_STK_SIZE];
 */
 
 // HBITMAP * img;
-HBITMAP *img_cover, *img_back, *img_initial ,*img_gameover ,*img_block,*img_bomb, *img_player, *img_bomberman, *img_bomberman_reverse, *img_explosion_center,*img_explosion_horizontal, *img_explosion_vertical, *img_fogo_vertical, *img_enemy1, *img_enemy2, *img_enemy3;
+HBITMAP *img_cover, *img_back, *img_initial ,*img_gameover ,*img_block,*img_bomb, *img_player, *img_bomberman, *img_bomberman_reverse, *img_explosion_center,*img_explosion_horizontal, *img_explosion_vertical, *img_fogo_vertical, *img_enemy1, *img_enemy2, *img_enemy3, *img_win;
 
 
 /*
@@ -232,6 +235,7 @@ static  void  Bombs_Task (void  *p_arg);
 static  void  Explosion_Task (void  *p_arg);
 static  void  Bg_Task (void  *p_arg);
 static  void  Blocks_Task (void  *p_arg);
+static  void  GameWon_Task (void  *p_arg);
 
 static  void Enemy_Task(void *p_arg);
 
@@ -257,6 +261,7 @@ static void create_gameover(void);
 static void GameOver_Task(void );
 static void create_gamestart(void);
 static void GameStart_Task(void);
+static void create_youwon(void);
 
 static void Catch_Bomberman(int , int , int );
 static bool find_wall_blocks(int , int);
@@ -359,6 +364,7 @@ static void Criar_Figuras(void)
 	img_player = img_bomberman;
 	img_gameover = GUI_CreateImage("gameover.bmp", BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGTH);
 	img_initial = GUI_CreateImage("initial.bmp", BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGTH);
+	img_win = GUI_CreateImage("win.bmp", BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGTH);
 }
 
 /*
@@ -1095,26 +1101,22 @@ static void Finish_Game(void)
 		printf("\nDeuses nunca perdem o jogo.");
 		return;
 	}
-
+	OSTaskDel(&Bg_TaskTCB, &err_os);
+	OSTaskDel(&Player_TaskTCB, &err_os);
 	printf("inimigos: %d ",enemy_count);
 	if (enemy_count > 0) {
 		// Caso o usu�rio perca o jogo, todas as tasks s�o mortas.
 		printf("Game Over");
-		OSTaskDel(&Bg_TaskTCB, &err_os);
-
-		create_gameover();
-
-
+		create_youwon();
+		//create_gameover();
 	}
 	else {
 		printf("VOCE GANHOU CHAMPS!");
+		create_youwon();
 	}
 
-	OSTaskDel(&Bg_TaskTCB, &err_os);
-	create_gameover();
-	OSTimeDlyHMSM(0,0,0,500,OS_OPT_TIME_DLY, &err_os);
+	OSTimeDlyHMSM(0,0,0,10000,OS_OPT_TIME_DLY, &err_os);
 
-	OSTaskDel(&Player_TaskTCB, &err_os);
 	APP_TEST_FAULT(err_os, OS_ERR_NONE);
 	for (i = 0; i < Enemys_number; i++) {
 		OSTaskDel(&Enemy_Task_TCB[i], &err_os);
@@ -2001,5 +2003,33 @@ static void create_gamestart(void){
 static void GameStart_Task(void *p_arg){
 
 	GUI_DrawImage(img_initial, 4, 0, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGTH, 0); // Coloca o Fundo com offset proposital de 4px em x.
+
+}
+
+
+static void create_youwon(void) {
+	OS_ERR err_os;
+
+	printf("Task Criada \n");
+	OSTaskCreate((OS_TCB     *)&GameWon_TaskTCB,                
+		(CPU_CHAR   *)"GameWon TASK",
+		(OS_TASK_PTR ) GameWon_Task,
+		(void       *) 0,
+		(OS_PRIO     ) 3,
+		(CPU_STK    *)&GameWon_TaskStk[0],
+		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE / 10u,
+		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE,
+		(OS_MSG_QTY  ) 0u,
+		(OS_TICK     ) 0u,
+		(void       *) 0,
+		(OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+		(OS_ERR     *)&err_os);
+	APP_TEST_FAULT(err_os, OS_ERR_NONE);
+
+}
+
+static void GameWon_Task(void *p_arg){
+
+	GUI_DrawImage(img_win, 4, 0, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGTH, 0); // Coloca o Fundo com offset proposital de 4px em x.
 
 }
