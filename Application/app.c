@@ -40,10 +40,13 @@
 #define GOD_MODE  0 // Em desenvolvimento = 1. Produ��o = 0;
 
 //2- Hard, 1 - Medium, 0 - Easy
-#define game_mode 2
+#define game_mode 4
 
+//Se estiver confuso é 1
+#define confused 0
 
-typedef enum {false=0, true=1} bool;
+typedef enum {false=0, 
+	true=1} bool;
 
 /*
 *********************************************************************************************************
@@ -133,6 +136,7 @@ LABIRINTOS - CODIFICA��O DOS OBJETOS
 * O acesso � matrix 'LABIRINTO' deve ser feito com posi��es y e x invertidas.
 * Ex.: LABIRINTO[Y][X];
 */
+
 int LABIRINTO[13][17] = 
 { { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
 ,{ 1, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }
@@ -149,6 +153,11 @@ int LABIRINTO[13][17] =
 ,{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
 };
 
+
+
+
+
+
 // Vari�veis declaradas do m�dulo da GUI
 extern HWND hwnd; 
 extern HDC hdc;
@@ -157,12 +166,13 @@ extern MSG Msg;
 int BOMBERMAN_POS_X = 1; // Posi��o x do bomberbam na matrix LABIRINTO. 1 = posi��o inicial.
 int BOMBERMAN_POS_Y = 1; // Posi��o y do bomberbam na matrix LABIRINTO. 1 = posi��o inicial.
 
-int BOMBERMAN_X = 40; // Posi��o x do bomberbam em rela��o � tela, ou seja, a posi��o em px. 40 = posi��o inicial.
-int BOMBERMAN_Y = 40; // Posi��o x do bomberbam em rela��o � tela, ou seja, a posi��o em px. 40 = posi��o inicial.
+int BOMBERMAN_X = 40;  //40; // Posi��o x do bomberbam em rela��o � tela, ou seja, a posi��o em px. 40 = posi��o inicial.
+int BOMBERMAN_Y = 40;  //40; // Posi��o x do bomberbam em rela��o � tela, ou seja, a posi��o em px. 40 = posi��o inicial.
 
 int WAITING_CLICK = 0; // Flag que bloquei o multi click na mesma tecla.
 int BOMB_ON = 0; // Flag que sinaliza que uma bomba foi plantada.
-int POWER_ON = 0; // Flag que sinaliza se o bomberman adquiriu algum poder. 
+
+int POWER_ON = 0;
 
 int num_bombs = 0; // N�mero total de bombas.
 int placed_bombs = 0; // N�mero total de bombas colocadas.
@@ -260,6 +270,7 @@ static void go_left(int);
 static void difficulty_level_hard(int ,int , int );
 static void difficulty_level_medium(int ,int , int );
 static void difficulty_level_easy(int ,int , int );
+static void difficulty_level_veryhard(int ,int , int );
 
 static OS_SEM player;
 static OS_SEM commands; 
@@ -272,6 +283,10 @@ static OS_SEM start_game;
 
 
 LRESULT CALLBACK HandleGUIEvents(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+
+
+
 
 /*******************************************************************************************************/
 
@@ -292,8 +307,8 @@ LRESULT CALLBACK HandleGUIEvents(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 int  main (void)
 {
 	OS_ERR  err_os;
-	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
 
+	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
 	OSInit(&err_os);                                            /* inicializa uC/OS-III.                                */
 	APP_TEST_FAULT(err_os, OS_ERR_NONE);
 
@@ -1094,6 +1109,11 @@ static void Finish_Game(void)
 	else {
 		printf("VOCE GANHOU CHAMPS!");
 	}
+
+	OSTaskDel(&Bg_TaskTCB, &err_os);
+	create_gameover();
+	OSTimeDlyHMSM(0,0,0,500,OS_OPT_TIME_DLY, &err_os);
+
 	OSTaskDel(&Player_TaskTCB, &err_os);
 	APP_TEST_FAULT(err_os, OS_ERR_NONE);
 	for (i = 0; i < Enemys_number; i++) {
@@ -1140,7 +1160,6 @@ LRESULT CALLBACK HandleGUIEvents(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			/*if(VK_F2 == wParam) {
 			OSTimeDlyHMSM(0,0,0,50,OS_OPT_TIME_DLY, &err_os);
 			if(VK_F2 == wParam) {
-
 			}*/
 
 			break;
@@ -1150,7 +1169,12 @@ LRESULT CALLBACK HandleGUIEvents(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			if(VK_LEFT == wParam) {
 				OSTimeDlyHMSM(0,0,0,50,OS_OPT_TIME_DLY, &err_os);
 				if(VK_LEFT == wParam) {
-					Make_Move(1);
+					if(confused == 0){
+						Make_Move(1);
+					}else {
+						Make_Move(3);
+					}
+
 				}
 			}
 			break;
@@ -1160,8 +1184,13 @@ LRESULT CALLBACK HandleGUIEvents(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			if(VK_RIGHT == wParam) {
 				OSTimeDlyHMSM(0,0,0,50,OS_OPT_TIME_DLY, &err_os);
 				if(VK_RIGHT == wParam) {
-					Make_Move(3);
+					if(confused == 0){
+						Make_Move(3);
+					}else {
+						Make_Move(1);
+					}
 				}
+
 			}
 			break;
 
@@ -1169,7 +1198,11 @@ LRESULT CALLBACK HandleGUIEvents(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			if(VK_UP == wParam) {
 				OSTimeDlyHMSM(0,0,0,50,OS_OPT_TIME_DLY, &err_os);
 				if(VK_UP == wParam) {
-					Make_Move(2);
+					if(confused == 0){
+						Make_Move(2);
+					}else {
+						Make_Move(4);
+					}
 				}
 			}
 			break;
@@ -1178,7 +1211,11 @@ LRESULT CALLBACK HandleGUIEvents(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			if(VK_DOWN == wParam) {
 				OSTimeDlyHMSM(0,0,0,50,OS_OPT_TIME_DLY, &err_os);
 				if(VK_DOWN == wParam) {
-					Make_Move(4);
+					if(confused == 0){
+						Make_Move(4);
+					}else {
+						Make_Move(2);
+					}
 				}
 			}
 			break;
@@ -1313,7 +1350,13 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 		if(game_mode == 1){
 			difficulty_level_medium(this_enemy,distanceX,distanceY);
 		}else{
-			difficulty_level_easy(this_enemy,distanceX,distanceY);
+			if(game_mode == 4){
+				difficulty_level_veryhard(this_enemy,distanceX,distanceY);
+			}else{
+
+				difficulty_level_easy(this_enemy,distanceX,distanceY);
+			}
+
 		}
 
 
@@ -1516,6 +1559,107 @@ static void go_up(int this_enemy){
 
 }
 
+static void difficulty_level_veryhard(int this_enemy,int distanceX, int distanceY){
+
+	/*if((distanceX == -1)&&(directions[1]==1)){
+	go_left(this_enemy);
+	return;
+	}
+	if((distanceX == 1)&&(directions[3]==1)){
+	go_right(this_enemy);
+	return;
+	}
+	if((distanceY == -1)&&(directions[2]==1)){
+	go_up(this_enemy);
+	return;
+	}
+	if((distanceY == 1)&&(directions[4]==1)){
+	go_down(this_enemy);
+	return;
+	}*/
+
+
+	if(abs(distanceX)>=abs(distanceY)){
+		if((distanceX<=0)&&(directions[1] == 1)){
+			go_left(this_enemy);
+			return;
+		}else{	
+			if((distanceX>0)&&(directions[3] == 1)){
+				go_right(this_enemy);
+				return;
+			}else{
+				if((distanceY<=0)&&(directions[2] == 1)){
+					go_up(this_enemy);
+					return;
+				}else{	
+					if(directions[2] == 1){
+						go_up(this_enemy);
+						return;
+					}else{
+						if(directions[4] == 1){
+							go_down(this_enemy);
+							return;
+						}else{
+
+							if(directions[1] == 1){
+								go_left(this_enemy);
+								return;
+							}else{
+								if(directions[3] == 1){
+									go_right(this_enemy);
+									return;
+								}
+
+
+							}
+						}
+
+					}
+				}
+			}
+		}
+	}else{
+		if((distanceY<=0)&&(directions[2] == 1)){
+			go_up(this_enemy);
+			return;
+		}else{	
+			if((distanceY>0)&&(directions[4] == 1)){
+				go_down(this_enemy);
+				return;
+			}else{
+				if((distanceX<=0)&&(directions[1] == 1)){
+					go_left(this_enemy);
+					return;
+				}else{	
+					if(directions[1] == 1){
+						go_left(this_enemy);
+						return;
+					}else{
+
+						if(directions[3] == 1){
+							go_right(this_enemy);
+							return;
+						}else{
+							if(directions[2] == 1){
+								go_up(this_enemy);
+								return;
+							}else{
+								if(directions[4] == 1){
+									go_down(this_enemy);
+									return;
+								}
+
+
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+
 static void difficulty_level_hard(int this_enemy,int distanceX, int distanceY){
 
 	if((distanceX == -1)&&(directions[1]==1)){
@@ -1555,10 +1699,20 @@ static void difficulty_level_hard(int this_enemy,int distanceX, int distanceY){
 						go_down(this_enemy);
 						return;
 					}else{
-						if(directions[3] == 1){
-							go_right(this_enemy);
+						if(directions[2] == 1){
+							go_up(this_enemy);
 							return;
+						}else{
+
+							if(directions[1] == 1){
+								go_left(this_enemy);
+								return;
+							}else{
+								go_right(this_enemy);
+								return;
+							}
 						}
+
 					}
 				}
 			}
@@ -1580,9 +1734,18 @@ static void difficulty_level_hard(int this_enemy,int distanceX, int distanceY){
 						go_right(this_enemy);
 						return;
 					}else{
-						if(directions[4] == 1){
-							go_down(this_enemy);
+
+						if(directions[1] == 1){
+							go_left(this_enemy);
 							return;
+						}else{
+							if(directions[2] == 1){
+								go_up(this_enemy);
+								return;
+							}else{	
+								go_down(this_enemy);
+								return;
+							}
 						}
 					}
 				}
@@ -1692,7 +1855,6 @@ static void difficulty_level_medium(int this_enemy,int distanceX, int distanceY)
 
 
 }
-
 
 static void difficulty_level_easy(int this_enemy,int distanceX, int distanceY){
 
@@ -1841,10 +2003,3 @@ static void GameStart_Task(void *p_arg){
 	GUI_DrawImage(img_initial, 4, 0, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGTH, 0); // Coloca o Fundo com offset proposital de 4px em x.
 
 }
-
-
-
-
-
-
-
