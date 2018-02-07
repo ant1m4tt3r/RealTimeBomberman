@@ -39,10 +39,10 @@
 #define MORTO 0
 #define GOD_MODE  0 // Em desenvolvimento = 1. Produ��o = 0;
 
-//2- Hard, 1 - Medium, 0 - Easy
+//2- Hard, 1 - Medium, 0 - Easy  3-Veryhard
 #define game_mode 0
 
-//Se estiver confuso é 1
+//Se estiver confuso é 1, ou seja, inverte os movimentos do teclado
 #define confused 0
 
 typedef enum {false=0, 
@@ -172,9 +172,11 @@ int BOMBERMAN_POS_Y = 1; // Posi��o y do bomberbam na matrix LABIRINTO. 1 = 
 int BOMBERMAN_X = 40;  //40; // Posi��o x do bomberbam em rela��o � tela, ou seja, a posi��o em px. 40 = posi��o inicial.
 int BOMBERMAN_Y = 40;  //40; // Posi��o x do bomberbam em rela��o � tela, ou seja, a posi��o em px. 40 = posi��o inicial.
 
+int Bomberman_exploded = 0; //Flag que sinaliza se o bomberman caiu na própria bomba
 int WAITING_CLICK = 0; // Flag que bloquei o multi click na mesma tecla.
 int BOMB_ON = 0; // Flag que sinaliza que uma bomba foi plantada.
 
+//Poder que expande o raio da bomba - se estiver no level easy, esse poder será ativado automaticamente
 int POWER_ON = 0;
 
 int num_bombs = 0; // N�mero total de bombas.
@@ -405,12 +407,8 @@ static  void  App_TaskStart (void  *p_arg)
 
 
 	OSTimeDlyHMSM(0,0,0,3000,OS_OPT_TIME_DLY, &err_os);
-	//OSSemPend(&start_game,0,OS_OPT_PEND_BLOCKING, &ts,&err_os);
 
 	OSTaskDel(&GameStart_TaskTCB, &err_os);
-
-	printf("Task Morta");
-
 
 	OSTaskCreate((OS_TCB     *)&Player_TaskTCB,                
 		(CPU_CHAR   *)"PLAYER TASK",
@@ -487,11 +485,11 @@ static  void  App_TaskStart (void  *p_arg)
 		TranslateMessage(&Msg);
 		DispatchMessage(&Msg);
 
-		OSTimeDlyHMSM(0,0,0,50,OS_OPT_TIME_DLY, &err_os); //Mudar o valor 50 pode dificultar o jogo, o que pode ser um mod da fase
+		OSTimeDlyHMSM(0,0,0,50,OS_OPT_TIME_DLY, &err_os); 
 
 	}
 	printf("\n fim do loop de msg");
-	//Draw_Background();
+
 
 	// Loop de mensagens para interface grafica
 
@@ -618,6 +616,7 @@ static  void  Player_Task (void  *p_arg)
 
 		if (LABIRINTO[BOMBERMAN_POS_Y][BOMBERMAN_POS_X] == 8) 
 		{
+			Bomberman_exploded = 1;
 			Finish_Game();
 		}
 
@@ -702,9 +701,14 @@ static  void  Explosion_Task (int  p_arg[])
 
 	int explosion_time = 50; // Tempo que a explosao continuara evidente no mapa.
 
+	//Se esta no level easy, ativa poder
+
+	if(game_mode == 0 || game_mode >= 4)
+		POWER_ON = 1;
+
 	BOMB_ON = 0;
 
-	if (GOD_MODE == 1) explosion_time = 30;
+	if (GOD_MODE == 1) explosion_time = 20;
 
 	for (i = 0; i < explosion_time; i++) 
 	{
@@ -946,7 +950,6 @@ static void Kill_Enemy(int i)
 	ENEMYS_POS[i][1] = 0;
 
 	enemy_count--;
-	printf("enemy count %d ",enemy_count);
 	if (enemy_count == 0) {
 		Finish_Game();
 	}
@@ -1033,7 +1036,6 @@ static void Put_Bomb(void)
 	if (placed_bombs == MAX_BOMBS) // Caso o player tente colocar mais bombas que o permitido, perde o jogo.
 	{
 		Finish_Game();
-		printf("Perdeu");
 		return;
 	};
 
@@ -1055,8 +1057,6 @@ static void Explode(int bomb[2])
 	OS_ERR  err_os;
 	bomb_positionX = bomb[0]; //Variavel global de posicao da bomba
 	bomb_positionY = bomb[1];
-
-	printf("Xposition %i Ypos %i \n ", bomb[0],bomb[1]);
 
 	OSTaskCreate((OS_TCB     *)&Explosion_TaskTCB,                
 		(CPU_CHAR   *)"Explosion TASK",
@@ -1095,34 +1095,37 @@ static void Initiate_Bombs_Matrix(void)
 static void Finish_Game(void) 
 {
 	OS_ERR  err_os;
+
 	int i;
+
 	if (GOD_MODE == 1) 
 	{
 		printf("\nDeuses nunca perdem o jogo.");
 		return;
 	}
+
+	if(Bomberman_exploded == 1){
+		OSTimeDlyHMSM(0,0,0,1000,OS_OPT_TIME_DLY, &err_os);
+		OSTaskDel(&Explosion_TaskTCB, &err_os);
+	}
+
 	OSTaskDel(&Bg_TaskTCB, &err_os);
-	OSTaskDel(&Player_TaskTCB, &err_os);
-	printf("inimigos: %d ",enemy_count);
+	
 	if (enemy_count > 0) {
 		// Caso o usu�rio perca o jogo, todas as tasks s�o mortas.
 		printf("Game Over");
-		create_youwon();
-		//create_gameover();
+		create_gameover();
+
 	}
 	else {
 		printf("VOCE GANHOU CHAMPS!");
-		create_youwon();
+		create_youwon();	
+		OSTaskDel(&Explosion_TaskTCB, &err_os);
 	}
 
-	OSTimeDlyHMSM(0,0,0,10000,OS_OPT_TIME_DLY, &err_os);
-
-	APP_TEST_FAULT(err_os, OS_ERR_NONE);
-	for (i = 0; i < Enemys_number; i++) {
-		OSTaskDel(&Enemy_Task_TCB[i], &err_os);
-	}
-
+	OSTimeDlyHMSM(0,0,0,2000,OS_OPT_TIME_DLY, &err_os);
 	OSTaskDel(&AppStartTaskTCB, &err_os);
+
 	APP_TEST_FAULT(err_os, OS_ERR_NONE);
 
 }
@@ -1346,22 +1349,24 @@ static void Catch_Bomberman(int this_enemy ,int x, int y){
 
 	OSSemPost(&enemy[this_enemy] ,OS_OPT_POST_NONE,&err_os); 
 
-	if(game_mode == 2){
+	switch(game_mode) 
+	{
+
+	case 0: 
+		difficulty_level_easy(this_enemy,distanceX,distanceY);
+		break;
+	case 1:
+		difficulty_level_medium(this_enemy,distanceX,distanceY);
+		break;
+	case 2:
 		difficulty_level_hard(this_enemy,distanceX,distanceY);
-	}else{
-		if(game_mode == 1){
-			difficulty_level_medium(this_enemy,distanceX,distanceY);
-		}else{
-			if(game_mode == 4){
-				difficulty_level_veryhard(this_enemy,distanceX,distanceY);
-			}else{
-
-				difficulty_level_easy(this_enemy,distanceX,distanceY);
-			}
-
-		}
-
-
+		break;
+	case 3:
+		difficulty_level_veryhard(this_enemy,distanceX,distanceY);
+		break;
+	default:
+		difficulty_level_easy(this_enemy,distanceX,distanceY);
+		break;
 	}
 
 }
@@ -1378,8 +1383,6 @@ bool find_wall_blocks(int i, int j){
 	}
 
 }
-
-
 
 static void Enemy_route(int this_enemy){
 
@@ -1982,7 +1985,6 @@ static void create_gamestart(void){
 
 	OS_ERR err_os;
 
-	printf("Task Criada \n");
 	OSTaskCreate((OS_TCB     *)&GameStart_TaskTCB,                
 		(CPU_CHAR   *)"GameStart TASK",
 		(OS_TASK_PTR ) GameStart_Task,
@@ -2010,12 +2012,12 @@ static void GameStart_Task(void *p_arg){
 static void create_youwon(void) {
 	OS_ERR err_os;
 
-	printf("Task Criada \n");
+
 	OSTaskCreate((OS_TCB     *)&GameWon_TaskTCB,                
 		(CPU_CHAR   *)"GameWon TASK",
 		(OS_TASK_PTR ) GameWon_Task,
 		(void       *) 0,
-		(OS_PRIO     ) 3,
+		(OS_PRIO     ) 8,
 		(CPU_STK    *)&GameWon_TaskStk[0],
 		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE / 10u,
 		(CPU_STK_SIZE) APP_TASK_START_STK_SIZE,
